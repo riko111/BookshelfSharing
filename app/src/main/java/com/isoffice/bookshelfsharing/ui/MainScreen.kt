@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.sharp.Delete
 import androidx.compose.material.icons.sharp.Search
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,27 +27,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.dao.BookDao
+import com.isoffice.bookshelfsharing.dao.DBAccess
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 
+
+var  bookList : SnapshotStateList<Book>? = null
 @Composable
-fun MainScreen(bookDao: BookDao, onNavigateToBarcode:() -> Unit, onNavigateToDetail: (str: String) -> Unit) {
-    var bookList = remember{ mutableStateListOf<Book>() }
-    runBlocking {
-        val job = launch {
-            bookList = bookDao.readBookList()
-        }
-        job.join()
-    }
+fun MainScreen(bookDao: BookDao, onNavigateToBarcode:() -> Unit, viewModel: MainViewModel) {
+    bookList = remember{ mutableStateListOf() }
 
     val navigationIcon = (@Composable{IconButton(onClick = { /*TODO*/ }) {
         Icon(Icons.Filled.Menu, contentDescription = "Open drawer")
@@ -62,10 +64,11 @@ fun MainScreen(bookDao: BookDao, onNavigateToBarcode:() -> Unit, onNavigateToDet
                 .padding(padding)
                 .fillMaxWidth()
         ) {
-            if(bookList.isEmpty()){
+            bookList = bookDao.readBookList()
+            if(bookList!!.isEmpty()){
                 CircleProgressIndicator()
             }else {
-                MainContent(bookList, bookDao, onNavigateToDetail)
+                MainContent(bookList!!, bookDao, viewModel)
             }
         }
     }
@@ -134,11 +137,11 @@ private fun SearchBar(){
 
 
 @Composable
-private fun MainContent(bookList: MutableList<Book>, bookDao: BookDao, onNavigateToDetail: (str: String) -> Unit) {
+private fun MainContent(bookList: MutableList<Book>, bookDao: BookDao, viewModel: MainViewModel) {
     BoxWithConstraints {
         val screenWidth = with(LocalDensity.current) {constraints.maxWidth.toDp()}
         val textWidth = (screenWidth - 150.dp )
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .background(Color.White)
                 .scrollable(
@@ -146,16 +149,16 @@ private fun MainContent(bookList: MutableList<Book>, bookDao: BookDao, onNavigat
                     orientation = Orientation.Vertical
                 )
         ) {
-            for(book in bookList) {
-                BookList(book, textWidth, bookDao, onNavigateToDetail)
+            bookList.forEach() {
+                item{BookList(it, textWidth, bookDao, viewModel)}
             }
         }
     }
 }
 
 @Composable
-fun BookList(book: Book, textWidth: Dp, bookDao: BookDao, onNavigateToDetail: (str:String) -> Unit){
-    val painter = if(book.thumbnail != null) {
+fun BookList(book: Book, textWidth: Dp, bookDao: BookDao, viewModel: MainViewModel){
+    val painter = if(book.thumbnail != null && book.thumbnail != "") {
         rememberAsyncImagePainter(book.thumbnail)
     } else {
         painterResource(id = R.drawable.ic_broken_image)
@@ -166,7 +169,7 @@ fun BookList(book: Book, textWidth: Dp, bookDao: BookDao, onNavigateToDetail: (s
         modifier = Modifier
             .fillMaxWidth()
             .border(width = 1.dp, color = Color.DarkGray, shape = RectangleShape)
-            .clickable(onClick = { onNavigateToDetail(book.key!!) })
+            .clickable(onClick = { viewModel.navController!!.navigate("bookDetail/${book.isbn!!}") })
     ){
         Image(
             painter = painter,
@@ -210,7 +213,7 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao){
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    deleteBook(book.key!!, bookDao)
+                    deleteBook(book.isbn!!, bookDao)
                 }) {
                     Text("はい")
                 }
@@ -226,6 +229,7 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao){
     }
 }
 
-private fun deleteBook(key:String, bookDao: BookDao) {
-    bookDao.deleteBook(key)
+private fun deleteBook(isbn:String, bookDao: BookDao) {
+    bookDao.deleteBook(isbn)
+    bookList = bookDao.readBookList()
 }

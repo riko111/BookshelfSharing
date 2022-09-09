@@ -9,129 +9,93 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.Firebase
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.Value
 import timber.log.Timber
 
 
-class BookDao(private val database: DatabaseReference) {
-    val bookList = mutableStateListOf<Book>()
+class BookDao(private val db: FirebaseFirestore) {
+    private val bookList = mutableStateListOf<Book>()
     var book = mutableStateOf<Book?>(null)
     fun writeNewBook(book:Book) {
-        val key = database.push().key
-        database.child("books").child(key!!).setValue(book)
+        db.collection("books")
+            .add(book)
             .addOnSuccessListener {
+                Timber.d("Book added with ID: ${it.id}")
             }
             .addOnFailureListener {
+                Timber.w("Error adding book: $it ")
             }
     }
 
-    fun searchBookList(book: Book): Boolean{
-        var findFlag = false
-        val bookList = readBookList()
-        for(b in bookList){
-            if(b.isbn == book.isbn){
-                findFlag = true
-                break
-            }
-        }
-        return findFlag
-
-    }
 
     fun readBookList():SnapshotStateList<Book> {
-        var childrenNode: MutableIterable<DataSnapshot>?
-        database.child("books").addValueEventListener(object :ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                childrenNode = dataSnapshot.children
-
-                if(childrenNode != null) {
-                    bookList.removeAll(bookList)
-                    for (child in childrenNode!!) {
-                        val key = child.key
-                        val isbn = child.child("isbn").value.toString()
-                        val title = child.child("title").value.toString()
-                        val subtitle = child.child("subtitle").value?.toString()
-                        val series = child.child("series").value?.toString()
-                        val author = child.child("author").value.toString()
-                        val thumbnail = child.child("thumbnail").value?.toString()
-                        val ownerId = child.child("ownerId").value.toString()
-                        val publishedDate = child.child("publishedDate").value?.toString()
-                        val publisher = child.child("publisher").value?.toString()
-                        val description = dataSnapshot.child("description").value?.toString()
-                        val ownerIcon = child.child("ownerIcon").value?.toString()
-                        val deleteFlag = child.child("deleteFlag").value?.toString().toBoolean()
-
-                        if(!deleteFlag) {
-                            val book = Book(
-                                isbn = isbn,
-                                title = title,
-                                subtitle = subtitle,
-                                series = series,
-                                author = author,
-                                thumbnail = thumbnail,
-                                publishedDate = publishedDate,
-                                publisher = publisher,
-                                ownerId = ownerId,
-                                ownerIcon = ownerIcon,
-                                description = description,
-                                key = key,
-                                deleteFlag = deleteFlag,
-                            )
-                            bookList.add(book)
-                        }
-                    }
+        db.collection("books")
+            .whereEqualTo("deleteFlag", false)
+            .get()
+            .addOnFailureListener {
+                Timber.w("Error getting books.: $it")
+            }
+            .addOnSuccessListener {
+                bookList.removeAll(bookList)
+                for(doc in it){
+                    val item = doc.data
+                    val book = Book(
+                        isbn = item["isbn"].toString(),
+                        title = item["title"].toString(),
+                        author = item["author"].toString(),
+                        ownerId = item["ownerId"].toString(),
+                        publisher = item["publisher"].toString(),
+                        publishedDate = item["publishedDate"].toString(),
+                        thumbnail = item["thumbnail"].toString(),
+                    )
+                    bookList.add(book)
                 }
             }
-            override fun onCancelled(databaseError: DatabaseError) {
-                // Getting Post failed, log a message
-                Timber.w( "loadPost:onCancelled${databaseError.toException()}")
-            }
-        })
         return bookList
     }
 
-    fun readBook(key:String): MutableState<Book?> {
-        database.child("books").child(key).addValueEventListener(object :ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                val isbn = dataSnapshot.child("isbn").value.toString()
-                val title = dataSnapshot.child("title").value.toString()
-                val subtitle = dataSnapshot.child("subtitle").value?.toString()
-                val series = dataSnapshot.child("series").value?.toString()
-                val author = dataSnapshot.child("author").value.toString()
-                val thumbnail = dataSnapshot.child("thumbnail").value?.toString()
-                val ownerId = dataSnapshot.child("ownerId").value.toString()
-                val publishedDate = dataSnapshot.child("publishedDate").value?.toString()
-                val publisher = dataSnapshot.child("publisher").value?.toString()
-                val description = dataSnapshot.child("description").value?.toString()
-                val ownerIcon = dataSnapshot.child("ownerIcon").value?.toString()
-                //val purchaseDate = child.child("purchaseDate").value?.toString()
-                book = mutableStateOf(Book(
-                    isbn = isbn,
-                    title = title,
-                    subtitle = subtitle,
-                    series = series,
-                    author = author,
-                    thumbnail = thumbnail,
-                    publishedDate = publishedDate,
-                    publisher = publisher,
-                    ownerId = ownerId,
-                    description = description,
-                    ownerIcon = ownerIcon,
-                    key = key,
-                ))
+    fun readBook(isbn:String) : MutableState<Book?>{
+        db.collection("books").whereEqualTo("isbn", isbn)
+            .get()
+            .addOnSuccessListener {
+                for(doc in it){
+                    val item = doc.data
+                    book = mutableStateOf(Book(
+                        isbn = item["isbn"].toString(),
+                        title = item["title"].toString(),
+                        author = item["author"]?.toString(),
+                        ownerId = item["ownerId"].toString(),
+                        publisher = item["publisher"]?.toString(),
+                        publishedDate = item["publishedDate"]?.toString(),
+                        thumbnail = item["thumbnail"]?.toString(),
+                        description = item["description"]?.toString(),
+                        subtitle = item["subtitle"]?.toString(),
+                        series = item["series"]?.toString(),
+                        ownerIcon = item["ownerIcon"].toString(),
+                    ))
+                }
             }
-            override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+            .addOnFailureListener {
+                Timber.w("Error getting books by isbn: $it")
             }
-        })
         return book
     }
 
-    fun deleteBook(key:String){
-        val updates = HashMap<String, Any>()
-        updates["/books/$key/deleteFlag"] = true
-        database.updateChildren(updates)
+    fun deleteBook(isbn:String){
+        db.collection("books").whereEqualTo("isbn", isbn)
+            .get()
+            .addOnSuccessListener {
+                val id = it.documents[0].id
+                db.collection("books").document(id)
+                    .update("deleteFlag", true)
+            }
+            .addOnFailureListener {
+                Timber.w("Error delete book. :$isbn")
+            }
     }
+
 }
 

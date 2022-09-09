@@ -1,8 +1,8 @@
 package com.isoffice.bookshelfsharing.model
 
 data class Book(
-    val isbn : String = "",
-    val title: String = "",
+    val isbn : String? = null,
+    val title: String,
     val subtitle: String? = null,
     val series : String? = null,
     val author: String? = null,
@@ -11,7 +11,6 @@ data class Book(
     val thumbnail: String? = null,
     val ownerId : String? = null,
     val ownerIcon : String? = null,
-    val description: String?,
-    val key : String? = null,
+    val description: String? = null,
     var deleteFlag : Boolean = false,
 )

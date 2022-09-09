@@ -19,9 +19,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
+import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
@@ -29,7 +31,7 @@ import java.time.format.DateTimeFormatter
 
 /*　本棚の本の詳細 */
 @Composable
-fun BookDetailScreen(key : String, bookDao: BookDao, onNavigateToMain: () -> Unit){
+fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel){
     var book = remember { mutableStateOf<Book?>(null) }
     runBlocking {
         val job = launch { book = bookDao.readBook(key) }
@@ -46,13 +48,13 @@ fun BookDetailScreen(key : String, bookDao: BookDao, onNavigateToMain: () -> Uni
                 CircularProgressIndicator()
             }
         }else {
-            BookContent(book.value!!, bookDao, onNavigateToMain)
+            BookContent(book.value!!, bookDao, viewModel)
         }
     }
 }
 
 @Composable
-private fun BookContent(book: Book, bookDao: BookDao, onNavigateToMain: () -> Unit) {
+private fun BookContent(book: Book, bookDao: BookDao, viewModel: MainViewModel) {
 
     var showDialog by remember { mutableStateOf(false) }
     val painter = if(book.thumbnail != null && book.thumbnail != "") {
@@ -124,7 +126,7 @@ private fun BookContent(book: Book, bookDao: BookDao, onNavigateToMain: () -> Un
             }
     }
     if(showDialog){
-        DeleteConfirm(book, bookDao, onNavigateToMain)
+        DeleteConfirm(book, bookDao, viewModel)
     }
 }
 
@@ -137,7 +139,7 @@ private fun dateFormatter(strDate : String): String {
 }
 
 @Composable
-private fun DeleteConfirm(book: Book, bookDao: BookDao, onNavigateToMain: () -> Unit){
+private fun DeleteConfirm(book: Book, bookDao: BookDao, viewModel: MainViewModel){
     val openDialog = remember{ mutableStateOf(true) }
     if(openDialog.value){
         AlertDialog(
@@ -148,7 +150,7 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao, onNavigateToMain: () -> 
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    deleteBook(book.key!!, bookDao, onNavigateToMain)
+                    deleteBook(book.isbn!!, bookDao, viewModel)
                 }) {
                     Text("はい")
                 }
@@ -164,7 +166,11 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao, onNavigateToMain: () -> 
     }
 }
 
-private fun deleteBook(key:String, bookDao: BookDao,onNavigateToMain:() -> Unit) {
-    bookDao.deleteBook(key)
-    onNavigateToMain
+private fun deleteBook(isbn:String, bookDao: BookDao,viewModel: MainViewModel) {
+    runBlocking {
+        val job =launch { bookDao.deleteBook(isbn) }
+        job.join()
+        viewModel.navController!!.navigateUp()
+    }
+
 }

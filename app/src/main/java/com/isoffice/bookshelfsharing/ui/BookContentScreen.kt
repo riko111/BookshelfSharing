@@ -60,11 +60,11 @@ private fun BookContent(item: OpenBD, user:FirebaseUser, bookDao: BookDao, conte
     for (text in textContent){
         textMap[text.textType] = text.text
     }
-    val book = BookOpenBDMapper.openBDToBook(item,user)
-    var searchFlag by remember { mutableStateOf(false)  }
+    //val book = BookOpenBDMapper.openBDToBook(item,user)
+    val searchFlag by remember { mutableStateOf(false)  }
     runBlocking {
         val job1 = launch {
-            searchFlag = bookDao.searchBookList(book)
+//            searchFlag = bookDao.searchBookList(book)
         }
         job1.join()
     }

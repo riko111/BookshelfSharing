@@ -28,7 +28,6 @@ object BookOpenBDMapper {
                 user.email.toString(),
                 user.photoUrl.toString(),
                 description = description,
-                key = null,
                 deleteFlag = false,
             )
         }

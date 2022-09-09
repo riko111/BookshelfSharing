@@ -31,13 +31,11 @@ class MainActivity : ComponentActivity() {
     private val auth: FirebaseAuth = Firebase.auth
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var authResultLauncher: ActivityResultLauncher<Intent>
-    private lateinit var navController: NavHostController
     private val viewModel: MainViewModel by viewModels()
 
-    companion object {
-        private var database = DBAccess().database
-        private val bookDao = BookDao(database)
-    }
+    private var database = DBAccess().db
+    private val bookDao = BookDao(database)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         configureTimber()
@@ -66,23 +64,23 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             BookshelfSharingTheme {
-                navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "auth" ) {
+                viewModel.navController = rememberNavController()
+                NavHost(navController = viewModel.navController!!, startDestination = "auth" ) {
                     composable("auth") { //google認証画面
                         AuthScreen(
                             currentUser = viewModel.currentUser,
-                            navController =  navController,
+                            navController =  viewModel.navController!!,
                         ) { signIn() }
                     }
                     composable("main"){ //メイン画面（本棚の書籍一覧）
                         MainScreen(
                             bookDao = bookDao,
-                            onNavigateToBarcode ={ navController.navigate("barcode")},
-                            onNavigateToDetail = {navController.navigate("bookDetail/${it}")}
+                            onNavigateToBarcode ={ viewModel.navController!!.navigate("barcode")},
+                            viewModel = viewModel
                         )
                     }
                     composable("barcode"){ //ISBNバーコード読み取り画面
-                        BarcodeScanScreen(navController = navController)
+                        BarcodeScanScreen(navController = viewModel.navController!!)
                     }
                     composable("book/{barcode}"){ //バーコードで読み取った書籍の表示画面
                         it.arguments?.getString("barcode")?.let { it1 ->
@@ -95,14 +93,14 @@ class MainActivity : ComponentActivity() {
                     composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
                         it.arguments?.getString("key")?.let{ it2 ->
                             BookDetailScreen(key = it2, bookDao = bookDao,
-                                    onNavigateToMain = { navController.navigate("main") })
+                                viewModel = viewModel)
                         }
                     }
                 }
             }
             BackHandler(enabled = true) {
-                if(navController.currentDestination?.route.toString() != "main"){
-                    navController.navigate("main")
+                if(viewModel.navController!!.currentDestination?.route.toString() != "main"){
+                    viewModel.navController!!.navigate("main")
                 } else {
                     this.finish()
                 }
@@ -131,7 +129,7 @@ class MainActivity : ComponentActivity() {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     Timber.d("signInWithCredential:success")
-                    navController.navigate("main")
+                    viewModel.navController!!.navigate("main")
                 } else {
                     // If sign in fails, display a message to the user.
                     Timber.w(task.exception, "signInWithCredential:failure")

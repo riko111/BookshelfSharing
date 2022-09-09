@@ -109,7 +109,7 @@ data class TextContent(
 data class Summary(
     val isbn : String,
     val title : String,
-    val series : String,
+    val series : String?,
     val publisher : String?,
     val pubdate : String?,
     val cover : String?,
