@@ -8,7 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,6 +23,7 @@ import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.dao.DBAccess
 import com.isoffice.bookshelfsharing.ui.*
 import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
+import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
 import timber.log.Timber
 
@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private var database = DBAccess().db
     private val bookDao = BookDao(database)
+    private val booksViewModel = BooksViewModel(bookDao)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,9 +75,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("main"){ //メイン画面（本棚の書籍一覧）
                         MainScreen(
-                            bookDao = bookDao,
-                            onNavigateToBarcode ={ viewModel.navController!!.navigate("barcode")},
-                            viewModel = viewModel
+                            { viewModel.navController!!.navigate("barcode") },
+                            {viewModel.navController!!.navigate("bookDetail/$it")},
+                            booksViewModel,
                         )
                     }
                     composable("barcode"){ //ISBNバーコード読み取り画面
@@ -91,18 +92,19 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
-                        it.arguments?.getString("key")?.let{ it2 ->
-                            BookDetailScreen(key = it2, bookDao = bookDao,
+
+                        it.arguments?.getString("key")?.let{ key ->
+                            BookDetailScreen(key = key, bookDao = bookDao,
                                 viewModel = viewModel)
                         }
                     }
                 }
             }
             BackHandler(enabled = true) {
-                if(viewModel.navController!!.currentDestination?.route.toString() != "main"){
-                    viewModel.navController!!.navigate("main")
-                } else {
+                if(viewModel.navController!!.currentDestination?.route.toString() == "main"){
                     this.finish()
+                } else {
+                    viewModel.navController!!.navigate("main")
                 }
             }
         }

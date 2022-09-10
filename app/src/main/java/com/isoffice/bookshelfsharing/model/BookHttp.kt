@@ -3,6 +3,7 @@ package com.isoffice.bookshelfsharing.model
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import timber.log.Timber
 import java.lang.Exception
 import java.util.concurrent.TimeUnit
 
@@ -27,7 +28,7 @@ object BookHttp{
             val formatter = Json { ignoreUnknownKeys = true }
             return formatter.decodeFromString(OpenBD.serializer(), json!!)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Timber.e(e)
         }
         return null
     }

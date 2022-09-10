@@ -39,7 +39,7 @@ data class DescriptiveDetail(
 @Parcelize
 data class Collection(
     @SerialName("TitleDetail")
-    val titleDetail:CollectionTitleDetail
+    val titleDetail:CollectionTitleDetail?=null,
 ):Parcelable
 
 @Serializable
@@ -77,8 +77,16 @@ data class TitleDetail(
 @Serializable
 @Parcelize
 data class TitleElement(
+    @SerialName("TitleText")
+    val titleText: TitleText? = null,
     @SerialName("Subtitle")
     val subtitle : Subtitle? = null,
+):Parcelable
+
+@Serializable
+@Parcelize
+data class TitleText(
+    val collationkey: String = "",
 ):Parcelable
 
 @Serializable

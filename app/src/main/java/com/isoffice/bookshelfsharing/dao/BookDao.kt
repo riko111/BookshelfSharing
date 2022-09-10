@@ -30,10 +30,10 @@ class BookDao(private val db: FirebaseFirestore) {
             }
     }
 
-
-    fun readBookList():SnapshotStateList<Book> {
+    fun readAllBooks():SnapshotStateList<Book> {
         db.collection("books")
             .whereEqualTo("deleteFlag", false)
+            .orderBy("furigana")
             .get()
             .addOnFailureListener {
                 Timber.w("Error getting books.: $it")
@@ -42,15 +42,7 @@ class BookDao(private val db: FirebaseFirestore) {
                 bookList.removeAll(bookList)
                 for(doc in it){
                     val item = doc.data
-                    val book = Book(
-                        isbn = item["isbn"].toString(),
-                        title = item["title"].toString(),
-                        author = item["author"].toString(),
-                        ownerId = item["ownerId"].toString(),
-                        publisher = item["publisher"].toString(),
-                        publishedDate = item["publishedDate"].toString(),
-                        thumbnail = item["thumbnail"].toString(),
-                    )
+                    val book = setSnapshotToBook(item)
                     bookList.add(book)
                 }
             }
@@ -63,19 +55,9 @@ class BookDao(private val db: FirebaseFirestore) {
             .addOnSuccessListener {
                 for(doc in it){
                     val item = doc.data
-                    book = mutableStateOf(Book(
-                        isbn = item["isbn"].toString(),
-                        title = item["title"].toString(),
-                        author = item["author"]?.toString(),
-                        ownerId = item["ownerId"].toString(),
-                        publisher = item["publisher"]?.toString(),
-                        publishedDate = item["publishedDate"]?.toString(),
-                        thumbnail = item["thumbnail"]?.toString(),
-                        description = item["description"]?.toString(),
-                        subtitle = item["subtitle"]?.toString(),
-                        series = item["series"]?.toString(),
-                        ownerIcon = item["ownerIcon"].toString(),
-                    ))
+                    book = mutableStateOf(
+                        setSnapshotToBook(item)
+                    )
                 }
             }
             .addOnFailureListener {
@@ -84,18 +66,87 @@ class BookDao(private val db: FirebaseFirestore) {
         return book
     }
 
-    fun deleteBook(isbn:String){
+    fun deleteBook(isbn:String):SnapshotStateList<Book>{
         db.collection("books").whereEqualTo("isbn", isbn)
             .get()
             .addOnSuccessListener {
-                val id = it.documents[0].id
-                db.collection("books").document(id)
-                    .update("deleteFlag", true)
+                if(it.documents.size > 0) {
+                    val id = it.documents[0].id
+                    db.collection("books").document(id)
+                        .update("deleteFlag", true)
+                }
+                readAllBooks()
             }
             .addOnFailureListener {
                 Timber.w("Error delete book. :$isbn")
             }
+        return bookList
     }
+
+    fun titleSearchBook(keyword:String):SnapshotStateList<Book>{
+        db.collection("books")
+            .orderBy("title")
+            .startAt(keyword).endAt(keyword + '\uf8ff')
+            .addSnapshotListener{value,error ->
+                if(error != null){
+                    Timber.w("title search error.")
+                } else {
+                    val list = ArrayList<Book>()
+                    if(value != null) {
+                        for ((i, doc) in value.withIndex()) {
+                            val item = doc.data
+                            val book = setSnapshotToBook(item)
+                            list.add(book)
+                            Timber.d(i.toString())
+                        }
+                    }
+                    bookList.removeAll(bookList)
+                    bookList.addAll(list)
+                }
+            }
+        return bookList
+    }
+
+
+    fun searchISBNBookList(isbn:String):Boolean{
+        var searchFlag = false
+        db.collection("books")
+            .whereEqualTo("isbn", isbn)
+            .addSnapshotListener{value,error ->
+                if(error != null){
+                    Timber.w("title search error.")
+                } else {
+                    if(value != null) {
+                        searchFlag = true
+                    }
+                }
+            }
+
+        return searchFlag
+    }
+
+
+    private fun setSnapshotToBook(item: Map<String, Any>): Book {
+        return Book(
+            isbn = item["isbn"].toString(),
+            title = item["title"].toString(),
+            furigana = item["furigana"].toString(),
+            author = item["author"]?.toString(),
+            ownerId = item["ownerId"].toString(),
+            publisher = item["publisher"]?.toString(),
+            publishedDate = item["publishedDate"]?.toString(),
+            thumbnail = item["thumbnail"]?.toString(),
+            description = item["description"]?.toString(),
+            subtitle = item["subtitle"]?.toString(),
+            series = item["series"]?.toString(),
+            ownerIcon = item["ownerIcon"].toString(),
+        )
+    }
+
+    fun getBookList() : SnapshotStateList<Book>{
+        return bookList
+    }
+
 
 }
 

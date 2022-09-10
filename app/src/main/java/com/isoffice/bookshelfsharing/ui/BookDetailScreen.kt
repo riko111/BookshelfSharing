@@ -126,7 +126,7 @@ private fun BookContent(book: Book, bookDao: BookDao, viewModel: MainViewModel) 
             }
     }
     if(showDialog){
-        DeleteConfirm(book, bookDao, viewModel)
+        DeleteConfirm(book, bookDao, viewModel.navController!!)
     }
 }
 
@@ -139,7 +139,7 @@ private fun dateFormatter(strDate : String): String {
 }
 
 @Composable
-private fun DeleteConfirm(book: Book, bookDao: BookDao, viewModel: MainViewModel){
+private fun DeleteConfirm(book: Book, bookDao: BookDao, navController: NavHostController){
     val openDialog = remember{ mutableStateOf(true) }
     if(openDialog.value){
         AlertDialog(
@@ -150,7 +150,7 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao, viewModel: MainViewModel
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    deleteBook(book.isbn!!, bookDao, viewModel)
+                    deleteBook(book.isbn!!, bookDao, navController)
                 }) {
                     Text("はい")
                 }
@@ -166,11 +166,11 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao, viewModel: MainViewModel
     }
 }
 
-private fun deleteBook(isbn:String, bookDao: BookDao,viewModel: MainViewModel) {
+private fun deleteBook(isbn:String, bookDao: BookDao,navController:NavHostController) {
     runBlocking {
         val job =launch { bookDao.deleteBook(isbn) }
         job.join()
-        viewModel.navController!!.navigateUp()
+        navController.navigateUp()
     }
 
 }

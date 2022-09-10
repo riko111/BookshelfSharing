@@ -3,6 +3,7 @@ package com.isoffice.bookshelfsharing.model
 data class Book(
     val isbn : String? = null,
     val title: String,
+    val furigana: String = "",
     val subtitle: String? = null,
     val series : String? = null,
     val author: String? = null,

@@ -23,7 +23,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.util.CoilUtils.dispose
 import com.google.zxing.ResultPoint
-import com.google.zxing.integration.android.IntentIntegrator
 import com.isoffice.bookshelfsharing.MainActivity
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookHttp

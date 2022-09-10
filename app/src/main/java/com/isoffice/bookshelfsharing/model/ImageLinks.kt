@@ -1,7 +1,7 @@
 package com.isoffice.bookshelfsharing.model
 
 import android.os.Parcelable
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ImageLinks(
