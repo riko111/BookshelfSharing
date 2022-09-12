@@ -23,6 +23,7 @@ import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.dao.DBAccess
 import com.isoffice.bookshelfsharing.ui.*
 import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
+import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
 import timber.log.Timber
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private var database = DBAccess().db
     private val bookDao = BookDao(database)
     private val booksViewModel = BooksViewModel(bookDao)
+    private val bookViewModel = BookViewModel(bookDao)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,7 +89,8 @@ class MainActivity : ComponentActivity() {
                         it.arguments?.getString("barcode")?.let { it1 ->
                             BookContentScreen(
                                 barcode = it1,
-                                user = viewModel.currentUser!!, bookDao = bookDao
+                                user = viewModel.currentUser!!,
+                                bookViewModel
                             )
                         }
                     }

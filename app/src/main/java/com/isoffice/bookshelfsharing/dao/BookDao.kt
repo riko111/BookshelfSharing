@@ -19,6 +19,7 @@ import timber.log.Timber
 class BookDao(private val db: FirebaseFirestore) {
     private val bookList = mutableStateListOf<Book>()
     var book = mutableStateOf<Book?>(null)
+    var flag = mutableStateOf<Boolean>(false)
     fun writeNewBook(book:Book) {
         db.collection("books")
             .add(book)
@@ -108,21 +109,20 @@ class BookDao(private val db: FirebaseFirestore) {
     }
 
 
-    fun searchISBNBookList(isbn:String):Boolean{
-        var searchFlag = false
+    fun searchIsbnBook(isbn:String):MutableState<Boolean>{
         db.collection("books")
             .whereEqualTo("isbn", isbn)
             .addSnapshotListener{value,error ->
                 if(error != null){
-                    Timber.w("title search error.")
+                    Timber.w("isbn search error.")
                 } else {
                     if(value != null) {
-                        searchFlag = true
+                        flag = mutableStateOf(true)
                     }
                 }
             }
 
-        return searchFlag
+        return flag
     }
 
 

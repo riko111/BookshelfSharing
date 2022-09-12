@@ -4,37 +4,55 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.twotone.Book
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.isoffice.bookshelfsharing.R
 
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
-import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.dao.BookOpenBDMapper
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookHttp
 import com.isoffice.bookshelfsharing.model.OpenBD
+import com.isoffice.bookshelfsharing.ui.viewModel.BookState
+import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 import kotlinx.coroutines.*
+import timber.log.Timber
 
 /*
 　openBD APIからの検索画面
  */
 @Composable
-fun BookContentScreen(barcode: String, user: FirebaseUser, bookDao: BookDao) {
+fun BookContentScreen(barcode: String,
+                      user: FirebaseUser,
+                      bookViewModel: BookViewModel
+) {
+    val state by bookViewModel.state.collectAsState()
+    BookContentScreen(
+        barcode,
+        user,
+        state,
+        {bookViewModel.getBookByIsbn(it)},
+        {bookViewModel.addBook(it)}
+    )
+}
+
+@Composable
+fun BookContentScreen(
+    barcode: String,
+    user:FirebaseUser,
+    state: BookState,
+    onSearchIsbn:(isbn:String) ->Unit,
+    onRegisterBook:(book:Book) ->Unit
+){
     val context = LocalContext.current
     var book :OpenBD? = null
     runBlocking {
@@ -48,12 +66,18 @@ fun BookContentScreen(barcode: String, user: FirebaseUser, bookDao: BookDao) {
     if(book == null){
         Text(text = "該当する書籍がありません")
     } else {
-        val searchFlag = bookDao.searchISBNBookList(book!!.summary.isbn)
-        BookContent(book!!, searchFlag, user, bookDao, context)
+        onSearchIsbn(barcode)
+        BookContent(state, book!!, user, onRegisterBook, context)
     }
 }
 @Composable
-private fun BookContent(item: OpenBD, searchFlag:Boolean, user:FirebaseUser, bookDao: BookDao, context: Context) {
+private fun BookContent(
+    state: BookState,
+    item: OpenBD,
+    user:FirebaseUser,
+    onRegisterBook:(book:Book) ->Unit,
+    context: Context
+) {
     val summary = item.summary
     val subtitle = item.onix.descriptiveDetail.titleDetail.titleElement.subtitle?.content
     val textContent = item.onix.collateralDetail.textContent
@@ -62,13 +86,6 @@ private fun BookContent(item: OpenBD, searchFlag:Boolean, user:FirebaseUser, boo
         textMap[text.textType] = text.text
     }
 
-//    var searchFlag by remember { mutableStateOf(false)  }
-//    runBlocking {
-//        val job1 = launch {
-//
-//        }
-//        job1.join()
-//    }
     var showDialog by remember { mutableStateOf(false) }
     val painter = if(summary.cover != null && summary.cover != "") {
         rememberAsyncImagePainter(summary.cover)
@@ -111,7 +128,7 @@ private fun BookContent(item: OpenBD, searchFlag:Boolean, user:FirebaseUser, boo
                 }
             }
         }
-        if(searchFlag){
+        if(state.flag){
             OutlinedButton(
                 onClick = {},
                 modifier = Modifier
@@ -131,13 +148,16 @@ private fun BookContent(item: OpenBD, searchFlag:Boolean, user:FirebaseUser, boo
         }
     }
     if(showDialog){
-        RegisteredAlert(item, user, bookDao,context)
+        RegisteredAlert(item, user, onRegisterBook,context)
     }
 }
 
-
 @Composable
-fun RegisteredAlert(item: OpenBD, user: FirebaseUser,bookDao: BookDao, context: Context){
+fun RegisteredAlert(item: OpenBD,
+                    user: FirebaseUser,
+                    onRegisterBook:(book:Book) ->Unit,
+                    context: Context
+){
     val openDialog = remember{ mutableStateOf(true) }
     if(openDialog.value){
         AlertDialog(
@@ -149,7 +169,7 @@ fun RegisteredAlert(item: OpenBD, user: FirebaseUser,bookDao: BookDao, context: 
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    registerBook(item, user, bookDao,context)
+                    registerBook(item, user, onRegisterBook,context)
                 }) {
                     Text("はい")
                 }
@@ -168,11 +188,15 @@ fun RegisteredAlert(item: OpenBD, user: FirebaseUser,bookDao: BookDao, context: 
 /*
  openBDの検索結果を本棚に追加する
  */
-private fun registerBook(item: OpenBD, user: FirebaseUser, bookDao: BookDao, context: Context) {
+private fun registerBook(
+    item: OpenBD,
+    user: FirebaseUser,
+    onRegisterBook:(book:Book) ->Unit,
+    context: Context) {
     val book = BookOpenBDMapper.openBDToBook(item,user)
     runBlocking {
         val job2 = launch {
-            bookDao.writeNewBook(book)
+            onRegisterBook(book)
         }
         job2.join()
         Toast.makeText(context,"${book.title}を登録しました",Toast.LENGTH_LONG).show()
