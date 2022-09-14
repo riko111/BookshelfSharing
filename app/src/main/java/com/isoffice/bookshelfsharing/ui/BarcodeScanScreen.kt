@@ -4,18 +4,21 @@ import android.app.Activity
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.MutableLiveData
@@ -63,23 +66,35 @@ fun BarcodeScanScreen(navController: NavHostController) {
     }
 
     Column {
+        Box(
+            contentAlignment = Alignment.TopCenter,
+            modifier = Modifier.weight(0.7f)
+                .border(width = 1.dp, color = Color.White)
+        ) {
+            AndroidView(
+                modifier = Modifier,
+                factory = { compoundBarcodeView },
+            )
+        }
         TextButton(
             onClick = { navController.navigate("book/$barcode") },
             modifier = Modifier.padding(5.dp)
         ) {
-            Text(text = barcode, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+            Text(
+                modifier= Modifier.fillMaxWidth(),
+                text = barcode,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp
+            )
         }
-        AndroidView(
-            modifier = Modifier,
-            factory = { compoundBarcodeView },
-        )
-
     }
     DisposableEffect(key1 = "someKey") {
         compoundBarcodeView.resume()
         onDispose { compoundBarcodeView.pause() }
     }
 }
+
 
 
 

@@ -26,6 +26,7 @@ import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private val bookDao = BookDao(database)
     private val booksViewModel = BooksViewModel(bookDao)
     private val bookViewModel = BookViewModel(bookDao)
+    private val scrollViewModel = ScrollViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,6 +82,7 @@ class MainActivity : ComponentActivity() {
                             { viewModel.navController!!.navigate("barcode") },
                             {viewModel.navController!!.navigate("bookDetail/$it")},
                             booksViewModel,
+                            scrollViewModel
                         )
                     }
                     composable("barcode"){ //ISBNバーコード読み取り画面

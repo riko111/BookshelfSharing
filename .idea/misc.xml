@@ -4,6 +4,8 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/riko1/AndroidStudioProjects/BookshelfSharing/app/src/main/res/drawable/ic_broken_image.xml" value="0.177" />
+        <entry key="..\:/riko1/AndroidStudioProjects/BookshelfSharing/app/src/main/res/drawable/ic_launcher_background.xml" value="0.155" />
+        <entry key="..\:/riko1/AndroidStudioProjects/BookshelfSharing/app/src/main/res/drawable/ic_launcher_foreground.xml" value="0.155" />
         <entry key="..\:/riko1/AndroidStudioProjects/BookshelfSharing/app/src/main/res/layout/activity_scanner.xml" value="0.24728260869565216" />
       </map>
     </option>

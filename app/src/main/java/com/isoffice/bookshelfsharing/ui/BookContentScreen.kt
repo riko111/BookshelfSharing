@@ -94,6 +94,7 @@ private fun BookContent(
     }
     Column (modifier = Modifier
         .padding(vertical = 2.dp)
+        .fillMaxWidth()
         .width(IntrinsicSize.Max)
         .border(1.dp, Color.LightGray),
         verticalArrangement = Arrangement.Center,

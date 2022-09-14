@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 /*　本棚の本の詳細 */
 @Composable
@@ -107,10 +108,7 @@ private fun BookContent(book: Book, bookDao: BookDao, viewModel: MainViewModel) 
                         Spacer(modifier = Modifier.size(5.dp))
                         Text(text = book.author.toString())
                         Text(text = book.publisher.toString())
-                        if (book.publishedDate != null) {
-                            val date = dateFormatter(book.publishedDate.toString())
-                            Text(text = date)
-                        }
+                        if (book.publishedDate != null) Text(text = book.publishedDate)
                         Spacer(modifier = Modifier.size(5.dp))
                     }
                 }
@@ -128,14 +126,6 @@ private fun BookContent(book: Book, bookDao: BookDao, viewModel: MainViewModel) 
     if(showDialog){
         DeleteConfirm(book, bookDao, viewModel.navController!!)
     }
-}
-
-
-private fun dateFormatter(strDate : String): String {
-    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd")
-    val date = LocalDate.parse(strDate, formatter)
-
-    return DateTimeFormatter.ofPattern("yyyy/MM/dd").format(date)
 }
 
 @Composable
