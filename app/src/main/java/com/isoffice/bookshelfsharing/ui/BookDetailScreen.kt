@@ -4,7 +4,9 @@ package com.isoffice.bookshelfsharing.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
@@ -68,18 +70,20 @@ private fun BookContent(book: Book, bookDao: BookDao, viewModel: MainViewModel) 
     } else {
         painterResource(id = com.isoffice.bookshelfsharing.R.drawable.ic_broken_image)
     }
-    Column (modifier = Modifier
-        .padding(vertical = 2.dp)
-        .fillMaxWidth()
-        .border(1.dp, Color.LightGray),
+    Column(
+        modifier = Modifier
+            .padding(vertical = 2.dp)
+            .verticalScroll(rememberScrollState())
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
+
 
         ) {
             Image(
                 painter = painter,
                 contentDescription = book.title,
-                modifier = Modifier.width(200.dp),
+                modifier = Modifier.size(200.dp),
                 contentScale = ContentScale.Fit,
             )
             Column(

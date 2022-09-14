@@ -154,7 +154,7 @@ private fun BookContent(
 }
 
 @Composable
-fun RegisteredAlert(item: OpenBD,
+private fun RegisteredAlert(item: OpenBD,
                     user: FirebaseUser,
                     onRegisterBook:(book:Book) ->Unit,
                     context: Context

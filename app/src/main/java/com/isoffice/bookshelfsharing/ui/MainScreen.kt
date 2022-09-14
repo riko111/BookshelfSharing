@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.dao.BookDao
@@ -56,8 +57,7 @@ import java.lang.IllegalStateException
 
 @Composable
 fun MainScreen(
-    onNavigateToBarcode: () -> Unit,
-    onNavigateToDetail:(str:String)->Unit,
+    navController:NavHostController,
     booksViewModel: BooksViewModel,
     scrollViewModel: ScrollViewModel
 ) {
@@ -65,11 +65,13 @@ fun MainScreen(
     booksViewModel.getAllBooksList()
     MainScreen(
         state,
-        onNavigateToBarcode,
-        onNavigateToDetail,
+        { navController.navigate("barcode") },
+        { navController.navigate("bookDetail/$it")},
         { booksViewModel.searchTitle(it)},
         { booksViewModel.deleteBook(it) },
         { scrollViewModel.setScrollIndex(it)},
+        { navController.navigate("inputISBN")},
+        { navController.navigate("inputBook")},
         scrollViewModel.state.collectAsState().value.scrollIndex
     )
 }
@@ -82,6 +84,8 @@ fun MainScreen(
     onSearchTitle:(title:String) -> Unit,
     onClickDelete:(key:String)->Unit,
     setScrollIndex:(index:Int)->Unit,
+    onNavigateToInputCode:() -> Unit,
+    onNavigateToInputBook:() -> Unit,
     index:Int
 ) {
 
@@ -96,7 +100,10 @@ fun MainScreen(
                     .height(40.dp)
                     .background(colorResource(id = R.color.brown_1)))
                 Spacer(modifier = Modifier.height(20.dp))
-                TextButton(onClick = {  }) {
+                TextButton(onClick =  onNavigateToInputCode ) {
+                    Text(text="ISBN手入力検索")
+                }
+                TextButton(onClick = onNavigateToInputBook) {
                     Text(text="手動本棚登録")
                 }
             }

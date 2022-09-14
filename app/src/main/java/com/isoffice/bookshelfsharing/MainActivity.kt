@@ -79,8 +79,7 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("main"){ //メイン画面（本棚の書籍一覧）
                         MainScreen(
-                            { viewModel.navController!!.navigate("barcode") },
-                            {viewModel.navController!!.navigate("bookDetail/$it")},
+                            viewModel.navController!!,
                             booksViewModel,
                             scrollViewModel
                         )
@@ -103,6 +102,12 @@ class MainActivity : ComponentActivity() {
                             BookDetailScreen(key = key, bookDao = bookDao,
                                 viewModel = viewModel)
                         }
+                    }
+                    composable("inputISBN"){    //ISBN手入力画面
+                        ISBNCodeInputScreen { viewModel.navController!!.navigate("book/$it") }
+                    }
+                    composable("inputBook"){
+                        BookInfoInputScreen(viewModel.navController!!,viewModel.currentUser!!,bookViewModel)
                     }
                 }
             }

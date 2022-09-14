@@ -24,9 +24,11 @@ object BookHttp{
         try {
             val response = client.newCall(request).execute()
             val tempString = response.body?.string()
-            val json = tempString?.substring(1, tempString.length - 1) //最初と最後の配列の括弧を取る
-            val formatter = Json { ignoreUnknownKeys = true }
-            return formatter.decodeFromString(OpenBD.serializer(), json!!)
+            if(tempString != "[null]"){
+                val json = tempString?.substring(1, tempString.length - 1) //最初と最後の配列の括弧を取る
+                val formatter = Json { ignoreUnknownKeys = true }
+                return formatter.decodeFromString(OpenBD.serializer(), json!!)
+            }
         } catch (e: Exception) {
             Timber.e(e)
         }
