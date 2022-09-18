@@ -70,22 +70,39 @@ class MainActivity : ComponentActivity() {
         setContent {
             BookshelfSharingTheme {
                 viewModel.navController = rememberNavController()
-                NavHost(navController = viewModel.navController!!, startDestination = "auth" ) {
+                val navController = viewModel.navController!!
+                NavHost(navController = navController, startDestination = "auth" ) {
                     composable("auth") { //google認証画面
                         AuthScreen(
                             currentUser = viewModel.currentUser,
-                            navController =  viewModel.navController!!,
+                            navController =  navController,
                         ) { signIn() }
                     }
                     composable("main"){ //メイン画面（本棚の書籍一覧）
                         MainScreen(
-                            viewModel.navController!!,
+                            navController,
                             booksViewModel,
                             scrollViewModel
                         )
                     }
+                    composable("titleSearch/{title}") { // タイトル検索結果
+                        TitleSearchResultScreen(
+                            navController,
+                            booksViewModel,
+                            scrollViewModel,
+                            it.arguments?.getString("title")!!
+                        )
+                    }
+                    composable("tagSearch/{tag}"){ //メイン画面（tag検索結果）
+                        TagSearchResultScreen(
+                            navController,
+                            booksViewModel,
+                            scrollViewModel,
+                            it.arguments?.getString("tag")!!
+                        )
+                    }
                     composable("barcode"){ //ISBNバーコード読み取り画面
-                        BarcodeScanScreen(navController = viewModel.navController!!)
+                        BarcodeScanScreen(navController = navController)
                     }
                     composable("book/{barcode}"){ //バーコードで読み取った書籍の表示画面
                         it.arguments?.getString("barcode")?.let { it1 ->
@@ -104,10 +121,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable("inputISBN"){    //ISBN手入力画面
-                        ISBNCodeInputScreen { viewModel.navController!!.navigate("book/$it") }
+                        ISBNCodeInputScreen { navController.navigate("book/$it") }
                     }
-                    composable("inputBook"){
-                        BookInfoInputScreen(viewModel.navController!!,viewModel.currentUser!!,bookViewModel)
+                    composable("inputBook"){    // 手動登録
+                        BookInfoInputScreen(navController,viewModel.currentUser!!,bookViewModel)
                     }
                 }
             }

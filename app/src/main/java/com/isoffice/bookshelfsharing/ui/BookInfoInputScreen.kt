@@ -124,8 +124,15 @@ fun BookInfoInputScreen(
         }
     }
     if(showDialog){
+        if(furigana.isEmpty()) furigana = ""
+        if(subtitle.isEmpty()) subtitle = ""
+        if(publisher.isEmpty()) publisher = ""
+        if(publishedDate.isEmpty()) publishedDate = ""
+        if(isbn.isEmpty()) isbn = ""
+
         val book = Book(
             title = title,
+            furigana = furigana,
             author = author,
             subtitle = subtitle,
             publisher = publisher,

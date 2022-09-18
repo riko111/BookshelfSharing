@@ -3,8 +3,9 @@
     <CLASSES>
       <root url="file://$USER_HOME$/.gradle/caches/transforms-3/c30ed4ab654401f0e7fd11ad1f6fdf11/transformed/coil-compose-base-2.0.0-rc01/res" />
       <root url="file://$USER_HOME$/.gradle/caches/transforms-3/4e36c31f1ad6c6df10fdcc92cde37076/transformed/coil-compose-base-2.0.0-rc01/res" />
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/4e36c31f1ad6c6df10fdcc92cde37076/transformed/coil-compose-base-2.0.0-rc01/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/4e36c31f1ad6c6df10fdcc92cde37076/transformed/coil-compose-base-2.0.0-rc01/AndroidManifest.xml" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/183fcf9a3f4f12faefb4f838d6a18642/transformed/coil-compose-base-2.0.0-rc01/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/183fcf9a3f4f12faefb4f838d6a18642/transformed/coil-compose-base-2.0.0-rc01/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/183fcf9a3f4f12faefb4f838d6a18642/transformed/coil-compose-base-2.0.0-rc01/AndroidManifest.xml" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.coil-kt/coil-compose-base/2.0.0-rc01/7836f3b6c76029d76c72b9e4fb2945515d4ace89/coil-compose-base-2.0.0-rc01-javadoc.jar!/" />

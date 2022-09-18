@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
+import com.isoffice.bookshelfsharing.model.BookInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -34,7 +35,7 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
 
 data class BookState(
     var flag : Boolean,
-    var book:  MutableState<Book?>?
+    var book:  MutableState<BookInfo?>?
 )
 {
     companion object{

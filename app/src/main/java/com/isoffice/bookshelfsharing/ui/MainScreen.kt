@@ -1,9 +1,6 @@
 package com.isoffice.bookshelfsharing.ui
 
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -36,23 +33,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.isoffice.bookshelfsharing.R
-import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
+import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.BookListState
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.ScrollState
 import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
-import java.lang.IllegalStateException
 
 
 @Composable
@@ -63,11 +52,12 @@ fun MainScreen(
 ) {
     val state by booksViewModel.state.collectAsState()
     booksViewModel.getAllBooksList()
+
     MainScreen(
         state,
         { navController.navigate("barcode") },
         { navController.navigate("bookDetail/$it")},
-        { booksViewModel.searchTitle(it)},
+        { navController.navigate("titleSearch/$it")},
         { booksViewModel.deleteBook(it) },
         { scrollViewModel.setScrollIndex(it)},
         { navController.navigate("inputISBN")},
@@ -91,6 +81,7 @@ fun MainScreen(
 
     val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
+    val bookList = state.bookList?.toMutableList()
 
     Scaffold(
         scaffoldState = scaffoldState,
@@ -118,13 +109,13 @@ fun MainScreen(
                 .padding(padding)
                 .fillMaxWidth()
         ) {
-            if(state.bookList == null){
+            if(bookList == null){
                 CircleProgressIndicator()
-            } else if(state.bookList.isEmpty()) {
+            } else if(bookList.isEmpty()) {
                Column {}
             } else {
                 MainContent(
-                    state,
+                    bookList,
                     onNavigateToDetail,
                     onClickDelete,
                     setScrollIndex,
@@ -136,7 +127,7 @@ fun MainScreen(
 }
 
 @Composable
-private fun CircleProgressIndicator() {
+fun CircleProgressIndicator() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -191,7 +182,9 @@ private fun SearchBar(
         onValueChange = {text = it},
         placeholder = { Text(text = "タイトル検索")},
         trailingIcon = {
-            IconButton(onClick = { onSearchTitle(text) }) {
+            IconButton(onClick = {
+                onSearchTitle(text)
+            }) {
                 Icon(
                     Icons.Sharp.Search,
                     contentDescription = "",
@@ -204,18 +197,18 @@ private fun SearchBar(
             capitalization = KeyboardCapitalization.Words,
             autoCorrect = false,
             keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Search
+            imeAction = ImeAction.Search,
         ),
         keyboardActions = KeyboardActions(
-            onSearch = { onSearchTitle(text) }
+            onSearch = { onSearchTitle(text) },
         )
     )
 }
 
 
 @Composable
-private fun MainContent(
-    state:BookListState,
+fun MainContent(
+    bookList: MutableList<BookInfo>,
     onNavigateToDetail:(key:String)->Unit,
     onClickDelete:(key:String)->Unit,
     setScrollIndex:(index:Int)->Unit,
@@ -230,7 +223,7 @@ private fun MainContent(
             state = listScrollState,
             modifier = Modifier.background(Color.White)
         ) {
-            items(state.bookList!!){
+            items(bookList){
                 BookList(it, textWidth,onNavigateToDetail,onClickDelete,setScrollIndex,listScrollState)
             }
         }
@@ -239,13 +232,15 @@ private fun MainContent(
 
 @Composable
 fun BookList(
-    book: Book,
+    bookInfo: BookInfo,
     textWidth: Dp,
     onNavigateToDetail:(str:String)->Unit,
     onClickDelete:(key:String)->Unit,
     setScrollIndex:(index:Int)->Unit,
     listScrollState: LazyListState
 ){
+    val id = bookInfo.key
+    val book = bookInfo.book
     val painter = if(book.thumbnail != null && book.thumbnail != "") {
         rememberAsyncImagePainter(book.thumbnail)
     } else {
@@ -259,7 +254,7 @@ fun BookList(
             .border(width = 1.dp, color = Color.DarkGray, shape = RectangleShape)
             .clickable(onClick = {
                 setScrollIndex(listScrollState.firstVisibleItemIndex)
-                onNavigateToDetail(book.isbn!!)
+                onNavigateToDetail(id)
             })
     ){
         Image(

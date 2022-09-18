@@ -1,11 +1,11 @@
 package com.isoffice.bookshelfsharing.ui.viewModel
 
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import com.isoffice.bookshelfsharing.dao.BookDao
-import com.isoffice.bookshelfsharing.model.Book
+import com.isoffice.bookshelfsharing.model.BookInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 
 class BooksViewModel (private val bookDao: BookDao):ViewModel() {
     private val booksStateFlow = MutableStateFlow(BookListState.initList)
@@ -29,16 +29,23 @@ class BooksViewModel (private val bookDao: BookDao):ViewModel() {
     }
 
     fun searchTitle(title:String) {
+        Timber.d("Title:$title")
         val oldState = currentState()
         val list = bookDao.titleSearchBook(title)
-        updateState { oldState.copy(bookList = MutableStateFlow(list).value) }
 
+        updateState { oldState.copy(bookList = MutableStateFlow(list).value) }
+    }
+
+    fun searchTag(tag:String) {
+        val oldState = currentState()
+        val list = bookDao.searchTag(tag)
+        updateState { oldState.copy(bookList = MutableStateFlow(list).value) }
     }
 }
 
 
 data class BookListState(
-    val bookList: SnapshotStateList<Book>?
+    val bookList: MutableList<BookInfo>?
 )
 {
     companion object{
