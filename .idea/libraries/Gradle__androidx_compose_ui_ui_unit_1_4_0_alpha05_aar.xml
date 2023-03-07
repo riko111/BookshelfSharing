@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: androidx.compose.ui:ui-unit:1.4.0-alpha05@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/169c98f95b7b852f51f0bd39a65cace0/transformed/ui-unit-1.4.0-alpha05/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/169c98f95b7b852f51f0bd39a65cace0/transformed/ui-unit-1.4.0-alpha05/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/169c98f95b7b852f51f0bd39a65cace0/transformed/ui-unit-1.4.0-alpha05/AndroidManifest.xml" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/androidx.compose.ui/ui-unit/1.4.0-alpha05/b8f34d3faad7484b16ca71e54e5bb189b1ae5091/ui-unit-1.4.0-alpha05-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

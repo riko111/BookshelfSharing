@@ -8,10 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
-import com.isoffice.bookshelfsharing.ui.viewModel.BookListState
+import com.isoffice.bookshelfsharing.ui.viewModel.BooksListState
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
 
@@ -22,7 +21,7 @@ fun TagSearchResultScreen(
     scrollViewModel: ScrollViewModel,
     tag:String
 ) {
-    val state by booksViewModel.state.collectAsState()
+    val state = booksViewModel.booksState
     booksViewModel.searchTag(tag)
 
     TagSearchResultScreen(
@@ -37,7 +36,7 @@ fun TagSearchResultScreen(
 }
 @Composable
 private fun TagSearchResultScreen(
-    state: BookListState,
+    bookState: BooksListState,
     tag: String,
     onNavigateToMain:()->Unit,
     onNavigateToDetail:(str:String)->Unit,
@@ -58,13 +57,11 @@ private fun TagSearchResultScreen(
                 .padding(padding)
                 .fillMaxWidth()
         ) {
-            if (state.bookList == null) {
+            if (bookState.bookList.isEmpty()) {
                 CircleProgressIndicator()
-            } else if (state.bookList.isEmpty()) {
-                Column {}
             } else {
                 MainContent(
-                    state.bookList,
+                    bookState.bookList,
                     onNavigateToDetail,
                     onClickDelete,
                     setScrollIndex,

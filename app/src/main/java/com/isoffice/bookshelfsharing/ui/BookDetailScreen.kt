@@ -4,6 +4,8 @@ package com.isoffice.bookshelfsharing.ui
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
@@ -13,26 +15,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.flowlayout.FlowRow
 import com.isoffice.bookshelfsharing.dao.BookDao
-import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.TagsListState
+import com.isoffice.bookshelfsharing.ui.viewModel.TagsViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import timber.log.Timber
 
 /*　本棚の本の詳細 */
 @Composable
-fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel){
+fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel, tagsViewModel: TagsViewModel){
     var book = remember { mutableStateOf<BookInfo?>(null) }
     runBlocking {
         val job = launch {
@@ -40,10 +44,15 @@ fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel){
         }
         job.join()
     }
+
     Column(
-        Modifier
+        if(book.value != null && book.value!!.book.deleteFlag){
+            Modifier.background(Color.Gray)
+        } else {
+            Modifier.background(Color.White)
+        }
             .padding(2.dp)
-            .fillMaxWidth()
+            .fillMaxSize()
             ) {
         if(book.value == null){
             Box(modifier = Modifier.fillMaxSize(),
@@ -51,13 +60,14 @@ fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel){
                 CircularProgressIndicator()
             }
         }else {
-            BookContent(book,  bookDao, viewModel)
+            tagsViewModel.setTagsList(book.value!!.book)
+            BookContent(book,  bookDao, viewModel, tagsViewModel.tagsState)
         }
     }
 }
 
 @Composable
-private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, viewModel: MainViewModel) {
+private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, viewModel: MainViewModel, tagsListState: TagsListState) {
     val book = bookInfo.value!!.book
     var showDialog by remember { mutableStateOf(false) }
 
@@ -71,6 +81,7 @@ private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, vie
     } else {
         painterResource(id = com.isoffice.bookshelfsharing.R.drawable.ic_broken_image)
     }
+
     Column(
         modifier = Modifier
             .padding(vertical = 2.dp)
@@ -121,31 +132,33 @@ private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, vie
                     .padding(vertical = 2.dp)
                     .weight(fill = true, weight = 1f)
         ) {
-                TagCompose(bookInfo, bookDao) { viewModel.navController!!.navigate("tagSearch/$it") }
-            }
+                TagCompose(bookInfo, bookDao,tagsListState) { viewModel.navController!!.navigate("tagSearch/$it") }
+        }
             Spacer(modifier = Modifier.padding(20.dp))
-            IconButton(onClick = { showDialog = true }) {
-                Icon(
-                    Icons.Sharp.Delete,
-                    contentDescription = "",
-                    tint = colorResource(id = com.isoffice.bookshelfsharing.R.color.brown_1),
-                    modifier = Modifier.size(25.dp)
-                )
+            if(!book.deleteFlag) {
+                IconButton(onClick = { showDialog = true }) {
+                    Icon(
+                        Icons.Sharp.Delete,
+                        contentDescription = "",
+                        tint = colorResource(id = com.isoffice.bookshelfsharing.R.color.brown_1),
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
             }
         }
     }
     if(showDialog){
-        DeleteConfirm(book, bookDao, viewModel.navController!!)
+        DeleteConfirm(bookInfo.value!!, bookDao, viewModel.navController!!)
     }
 }
 
 @Composable
-private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, onNavigateToMainWithTagSearch: (tag: String) -> Unit){
-    val book = bookInfo.value!!.book
-    val tagList = remember { book.tags.toMutableList()}
+private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, tagsListState: TagsListState,
+                       onNavigateToTagSearch: (tag: String) -> Unit){
+    val tagList = tagsListState.tagListOnScreen
     var showDeleteTagDialog by remember { mutableStateOf(false)}
     var showTagDialog by remember { mutableStateOf(false)}
-    var tag = ""
+    val tag = remember {mutableStateOf("")}
     Spacer(modifier = Modifier.size(5.dp))
     FlowRow(modifier = Modifier.padding(20.dp)) {
         if(tagList.isNotEmpty()){
@@ -154,18 +167,19 @@ private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, onNa
                     Text(
                         text = it,
                         modifier = Modifier
-                            .clickable { onNavigateToMainWithTagSearch(it)/**/ },
+                            .clickable { onNavigateToTagSearch(it) },
                         style = TextStyle(
                             textDecoration = TextDecoration.Underline,
                         ),
                         color = Color.Blue
                     )
                     Spacer(modifier = Modifier.size(10.dp))
+
                     Text(
                         text = "✗",
                         modifier = Modifier
                             .clickable {
-                                tag = it
+                                tag.value = it
                                 showDeleteTagDialog = true
                             },
                         style = TextStyle(
@@ -188,27 +202,27 @@ private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, onNa
     }
 
     if(showDeleteTagDialog){
-        DeleteTagDialog(bookInfo.value!!.key,tagList, tag, bookDao)
+        DeleteTagDialog(tagsListState,bookInfo.value!!.key, tag.value, bookDao )
     }
     if(showTagDialog){
-        AddTagDialog(bookInfo.value!!.key, tagList, bookDao)
+        AddTagDialog(tagsListState,bookInfo.value!!.key, bookDao)
     }
 }
 
 
 @Composable
-private fun DeleteConfirm(book: Book, bookDao: BookDao, navController: NavHostController){
+private fun DeleteConfirm(bookInfo: BookInfo, bookDao: BookDao, navController: NavHostController){
     val openDialog = remember{ mutableStateOf(true) }
     if(openDialog.value){
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
             title = {
-                Text(text = "「${book.title}」を削除しますか？")
+                Text(text = "「${bookInfo.book.title}」を削除しますか？")
             },
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    deleteBook(book.isbn!!, bookDao, navController)
+                    deleteBook(bookInfo.key, bookDao, navController)
                 }) {
                     Text("はい")
                 }
@@ -224,9 +238,9 @@ private fun DeleteConfirm(book: Book, bookDao: BookDao, navController: NavHostCo
     }
 }
 
-private fun deleteBook(isbn:String, bookDao: BookDao,navController:NavHostController) {
+private fun deleteBook(key:String, bookDao: BookDao,navController:NavHostController) {
     runBlocking {
-        val job =launch { bookDao.deleteBook(isbn) }
+        val job =launch { bookDao.deleteBook(key) }
         job.join()
         navController.navigateUp()
     }
@@ -234,9 +248,7 @@ private fun deleteBook(isbn:String, bookDao: BookDao,navController:NavHostContro
 
 @Composable
 private fun AddTagDialog(
-    key: String,
-    tagList: MutableList<String>,
-    bookDao: BookDao
+    tagsListState: TagsListState,key:String,bookDao: BookDao
 ){
     val openDialog = remember{ mutableStateOf(true) }
     val (text, setText) = remember { mutableStateOf("")}
@@ -244,12 +256,26 @@ private fun AddTagDialog(
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
             title = { Text(text ="タグ追加") },
-            text = { TextField(value = text, onValueChange = setText)},
+            text = {
+                TextField(
+                    value = text, onValueChange = setText,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            openDialog.value = false
+                            tagsListState.tagListOnScreen.add(text)
+                            bookDao.addTagList(key,text)
+                        }
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    bookDao.addTagList(key, text)
-                    tagList.add(text)
+                    tagsListState.tagListOnScreen.add(text)
+                    bookDao.addTagList(key,text)
                 }) {
                     Text("追加")
                 }
@@ -267,9 +293,9 @@ private fun AddTagDialog(
 
 @Composable
 private fun DeleteTagDialog(
+    tagsListState: TagsListState,
     key: String,
-    tagList: MutableList<String>,
-    tag:String,
+    tag: String,
     bookDao: BookDao
 ){
     val openDialog = remember{ mutableStateOf(true) }
@@ -277,12 +303,12 @@ private fun DeleteTagDialog(
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
             title = { Text(text ="タグ削除") },
-            text = { Text(text = "削除してよいですか")},
+            text = { Text(text = "「$tag」を削除してよいですか")},
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    bookDao.deleteTag(key, tag)
-                    tagList.remove(tag)
+                    bookDao.deleteTag(key,tag)
+                    tagsListState.tagListOnScreen.remove(tag)
                 }) {
                     Text("削除")
                 }

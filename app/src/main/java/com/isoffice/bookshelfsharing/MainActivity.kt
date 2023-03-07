@@ -23,10 +23,7 @@ import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.dao.DBAccess
 import com.isoffice.bookshelfsharing.ui.*
 import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
-import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.*
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
@@ -46,7 +43,6 @@ class MainActivity : ComponentActivity() {
         configureTimber()
 
         auth.addAuthStateListener { auth ->
-            Timber.d("addAuthStateListener: ${auth.currentUser}")
             viewModel.currentUser = auth.currentUser
         }
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -58,15 +54,13 @@ class MainActivity : ComponentActivity() {
             val data: Intent? = result.data
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
-                // Google Sign In was successful, authenticate with Firebase
                 val account = task.getResult(ApiException::class.java)!!
-                Timber.d("firebaseAuthWithGoogle:%s", account.id)
                 firebaseAuthWithGoogle(account.idToken!!)
             } catch (e: ApiException) {
-                // Google Sign In failed, update UI appropriately
                 Timber.w(e, "Google sign in failed")
             }
         }
+
         setContent {
             BookshelfSharingTheme {
                 viewModel.navController = rememberNavController()
@@ -81,7 +75,8 @@ class MainActivity : ComponentActivity() {
                     composable("main"){ //メイン画面（本棚の書籍一覧）
                         MainScreen(
                             navController,
-                            booksViewModel,
+                            user = viewModel.currentUser!!.email.toString(),
+                            bookDao,
                             scrollViewModel
                         )
                     }
@@ -116,8 +111,7 @@ class MainActivity : ComponentActivity() {
                     composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
 
                         it.arguments?.getString("key")?.let{ key ->
-                            BookDetailScreen(key = key, bookDao = bookDao,
-                                viewModel = viewModel)
+                            BookDetailScreen(key, bookDao, viewModel, TagsViewModel())
                         }
                     }
                     composable("inputISBN"){    //ISBN手入力画面
@@ -126,11 +120,24 @@ class MainActivity : ComponentActivity() {
                     composable("inputBook"){    // 手動登録
                         BookInfoInputScreen(navController,viewModel.currentUser!!,bookViewModel)
                     }
+                    composable("filter"){// 詳細検索画面
+                        FilterScreen(navController)
+                    }
+                    composable("detailedSearch/{str}"){// 詳細検索結果画面
+                        DetailSearchResultScreen(
+                            navController,
+                            booksViewModel,
+                            scrollViewModel,
+                            it.arguments?.getString("str")!!
+                        )
+                    }
                 }
             }
             BackHandler(enabled = true) {
-                if(viewModel.navController!!.currentDestination?.route.toString() == "main"){
+                if(viewModel.navController!!.currentDestination?.route.toString() == "main") {
                     this.finish()
+                } else if(viewModel.navController!!.currentDestination?.route.toString().startsWith("bookDetail")){
+                    viewModel.navController!!.popBackStack()
                 } else {
                     viewModel.navController!!.navigate("main")
                 }
@@ -157,11 +164,9 @@ class MainActivity : ComponentActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    // Sign in success, update UI with the signed-in user's information
                     Timber.d("signInWithCredential:success")
                     viewModel.navController!!.navigate("main")
                 } else {
-                    // If sign in fails, display a message to the user.
                     Timber.w(task.exception, "signInWithCredential:failure")
                 }
             }

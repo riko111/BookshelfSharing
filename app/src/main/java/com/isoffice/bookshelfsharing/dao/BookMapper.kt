@@ -14,11 +14,19 @@ object BookOpenBDMapper {
                 furigana = this.onix.descriptiveDetail.titleDetail.titleElement.titleText.collationkey
             }
 
+            val descriptionList = mutableListOf<String>()
             for(str in this.onix.collateralDetail.textContent){
-                if(str.textType == "03"){
-                    description = str.text
-                    break
+                descriptionList.add(str.text)
+            }
+
+            if(descriptionList.isNotEmpty()) {
+                var min = 0
+                for (index in 1 until descriptionList.size) {
+                    if (descriptionList[index].length < descriptionList[min].length) {
+                        min = index
+                    }
                 }
+                description = descriptionList[min]
             }
 
             Book(

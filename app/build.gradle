@@ -7,12 +7,12 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.isoffice.bookshelfsharing"
         minSdk 31
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -46,66 +46,70 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    namespace 'com.isoffice.bookshelfsharing'
 }
 
 dependencies {
 
-    implementation 'androidx.core:core-ktx:1.8.0'
-    //implementation "androidx.compose.ui:ui:$compose_version"
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.compose.material:material:$compose_version"
+    implementation "androidx.compose.material3:material3:1.0.1"
+    //implementation "androidx.compose.ui:ui:1.3.3"
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
-    implementation "androidx.navigation:navigation-compose:$nav_version"
+    implementation "androidx.navigation:navigation-compose:2.5.3"
 
-    implementation 'androidx.activity:activity-compose:1.5.1'
-    implementation 'androidx.compose.ui:ui-tooling:1.2.1'
+    implementation 'androidx.activity:activity-compose:1.6.1'
+    implementation 'androidx.compose.ui:ui-tooling:1.3.3'
 
 
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
-    implementation 'androidx.activity:activity-compose:1.5.1'
-    implementation 'com.google.firebase:firebase-auth-ktx:21.0.8'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.0-rc01'
+    implementation 'com.google.firebase:firebase-auth-ktx:21.1.0'
     // Import the BoM for the Firebase platform
-    implementation platform('com.google.firebase:firebase-bom:30.3.1')
+    implementation platform('com.google.firebase:firebase-bom:31.2.3')
     // Declare the dependency for the Realtime Database library
     // When using the BoM, you don't specify versions in Firebase library dependencies
-    implementation 'com.google.firebase:firebase-database-ktx'
-    implementation 'com.google.firebase:firebase-firestore-ktx'
+    implementation 'com.google.firebase:firebase-database-ktx:20.1.0'
+    implementation 'com.google.firebase:firebase-firestore-ktx:24.4.4'
 
-    implementation 'com.google.android.gms:play-services-auth:20.3.0'
+    implementation 'com.google.accompanist:accompanist-permissions:0.25.1'
+
+    implementation 'com.google.android.gms:play-services-auth:20.4.1'
     // Timber
-    implementation 'com.jakewharton.timber:timber:4.7.1'
+    implementation 'com.jakewharton.timber:timber:5.0.1'
 
     // Ktor
-    implementation "io.ktor:ktor-client-core:1.4.1"
-    implementation "io.ktor:ktor-client-serialization:1.4.1"
-    implementation "io.ktor:ktor-client-android:1.4.1"
+    implementation 'io.ktor:ktor-client-core:2.2.4'
+    implementation 'io.ktor:ktor-client-serialization:2.2.4'
+    implementation 'io.ktor:ktor-client-android:2.2.4'
 
-    implementation 'androidx.compose.material:material-icons-extended:1.2.1'
+    implementation 'androidx.compose.material:material-icons-extended:1.3.1'
 
     // books api用
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     //thumbnail用
-    implementation("io.coil-kt:coil-compose:2.0.0-rc01")
+    implementation('io.coil-kt:coil-compose:2.2.2')
 
 
     //Camera Permission
-    implementation "com.google.accompanist:accompanist-permissions:0.19.0"
+    implementation "com.google.accompanist:accompanist-permissions:0.25.1"
 
     // zxing
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation('com.journeyapps:zxing-android-embedded:4.3.0'){transitive = false}
 
     //kotlin serialization
-    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0'
 
-    implementation "com.google.accompanist:accompanist-flowlayout:0.24.2-alpha"
+    implementation 'com.google.accompanist:accompanist-flowlayout:0.29.1-alpha'
 
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
-    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:1.3.3"
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 }
