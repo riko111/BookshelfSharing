@@ -37,6 +37,16 @@ fun getBooksListByTitle(key:String, allList:MutableList<BookInfo>):MutableList<B
     return list
 }
 
+fun getBooksListByTag(key:String, allList:MutableList<BookInfo>):MutableList<BookInfo> {
+    val list = mutableStateListOf<BookInfo>()
+    allList.forEach {
+        if(it.book.tags.contains(key)){
+            list.add(it)
+        }
+    }
+    return list
+}
+
 fun getBooksListByDetailSearch(map:MutableMap<String, String>, allList: MutableList<BookInfo>):MutableList<BookInfo> {
     val list = mutableStateListOf<BookInfo>()
     allList.forEach{
