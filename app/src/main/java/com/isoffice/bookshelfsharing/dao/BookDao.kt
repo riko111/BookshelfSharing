@@ -97,7 +97,7 @@ class BookDao(private val db: FirebaseFirestore) {
 */
 
 
-    fun searchIsbnBook(isbn:String):MutableState<Boolean>{
+    fun searchIsbnBook(isbn:String):MutableState<BookInfo?>{
         db.collection("books")
             .whereEqualTo("isbn", isbn)
             .get()
@@ -105,14 +105,14 @@ class BookDao(private val db: FirebaseFirestore) {
                 Timber.w("isbn search error.")
             }
             .addOnSuccessListener {
-                flag = if(it.documents.size > 0) {
-                    mutableStateOf(true)
+                book = if(it.documents.size > 0) {
+                    mutableStateOf(BookInfo(it.documents[0].id, setSnapshotToBook(it.documents[0].data!!)))
                 } else {
-                    mutableStateOf(false)
+                    mutableStateOf(null)
                 }
             }
 
-        return flag
+        return book
     }
 
 

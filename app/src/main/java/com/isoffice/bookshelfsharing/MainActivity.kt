@@ -20,7 +20,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.isoffice.bookshelfsharing.dao.BookDao
-import com.isoffice.bookshelfsharing.dao.DBAccess
+import com.isoffice.bookshelfsharing.dao.FireStoreAccess
 import com.isoffice.bookshelfsharing.ui.*
 import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
 import com.isoffice.bookshelfsharing.ui.viewModel.*
@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var authResultLauncher: ActivityResultLauncher<Intent>
     private val viewModel: MainViewModel by viewModels()
 
-    private var database = DBAccess().db
+    private var database = FireStoreAccess().db
     private val bookDao = BookDao(database)
     private val booksViewModel = BooksViewModel(bookDao)
     private val bookViewModel = BookViewModel(bookDao)
@@ -102,8 +102,9 @@ class MainActivity : ComponentActivity() {
                     composable("book/{barcode}"){ //バーコードで読み取った書籍の表示画面
                         it.arguments?.getString("barcode")?.let { it1 ->
                             BookContentScreen(
-                                barcode = it1,
-                                user = viewModel.currentUser!!,
+                                navController,
+                                it1,
+                                viewModel.currentUser!!,
                                 bookViewModel
                             )
                         }
@@ -117,8 +118,17 @@ class MainActivity : ComponentActivity() {
                     composable("inputISBN"){    //ISBN手入力画面
                         ISBNCodeInputScreen { navController.navigate("book/$it") }
                     }
+                    composable("inputBook/{isbn}"){    // 手動登録
+                        BookInfoInputScreen(
+                            navController,viewModel.currentUser!!,
+                            it.arguments?.getString("isbn")!!,
+                            bookViewModel)
+                    }
                     composable("inputBook"){    // 手動登録
-                        BookInfoInputScreen(navController,viewModel.currentUser!!,bookViewModel)
+                        BookInfoInputScreen(
+                            navController,viewModel.currentUser!!,
+                            "",
+                            bookViewModel)
                     }
                     composable("filter"){// 詳細検索画面
                         FilterScreen(navController)

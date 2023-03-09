@@ -101,7 +101,7 @@ fun MainScreen(
                 TextButton(onClick =  onNavigateToInputCode ) {
                     Text(text="ISBN手入力検索")
                 }
-                TextButton(onClick = onNavigateToInputBook) {
+                TextButton(onClick = { onNavigateToInputBook() }) {
                     Text(text="手動本棚登録")
                 }
             }
@@ -201,7 +201,7 @@ private fun SearchBar(
     onSearchTitle:(title:String) -> Unit,
     onFilter:() -> Unit,
 ){
-    Row(){
+    Row{
         SearchBar(onSearchTitle)
         FilterButton (onFilter)
     }

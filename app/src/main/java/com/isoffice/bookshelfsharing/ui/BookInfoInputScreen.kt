@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.model.Book
@@ -19,101 +20,83 @@ import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 fun BookInfoInputScreen(
     navController:NavHostController,
     user: FirebaseUser,
+    barcode:String,
     bookViewModel: BookViewModel
 ){
+
     var title by remember { mutableStateOf("")}
     var furigana by remember { mutableStateOf("")}
     var author by remember { mutableStateOf("")}
     var subtitle by remember { mutableStateOf("")}
+    var description by remember { mutableStateOf("")   }
     var publisher by remember { mutableStateOf("")}
     var publishedDate by remember { mutableStateOf("")}
-    var isbn by remember { mutableStateOf("")}
+    var isbn by remember { mutableStateOf(barcode)}
     var showDialog by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.padding(3.dp),
+        modifier = Modifier
+            .padding(3.dp)
+            .fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "タイトル",
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("タイトル*")},
+            value = title,
+            onValueChange = {title = it},
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("ふりがな")},
+            value = furigana, onValueChange = {furigana = it},
+            placeholder = { Text(text = "フリガナ") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+            )
+
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("サブタイトル")},
+            value = subtitle, onValueChange = {subtitle = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("著者*")},
+            value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("情報")},
+            value = description, onValueChange = {description = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        OutlinedTextField(
                 modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = title, onValueChange = {title = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "フリガナ",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(
-                value = furigana, onValueChange = {furigana = it},
-                placeholder = { Text(text = "フリガナ") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "サブタイトル",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = subtitle, onValueChange = {subtitle = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "著者",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "出版社",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "出版日",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = publishedDate, onValueChange = {publishedDate = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "ISBN",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = isbn, onValueChange = {isbn = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        }
+                    .fillMaxWidth()
+                    .padding(3.dp),
+        label = {Text("出版社")},
+        value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            label = {Text("出版日")},
+            value = publishedDate,
+            placeholder = { Text(text = "yyyymmdd") },
+            onValueChange = {publishedDate = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        OutlinedTextField(
+            label = {Text("ISBN")},
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            value = isbn, onValueChange = {isbn = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+
         OutlinedButton(
             onClick = { showDialog = true  },
             modifier = Modifier
@@ -126,6 +109,7 @@ fun BookInfoInputScreen(
     if(showDialog){
         if(furigana.isEmpty()) furigana = ""
         if(subtitle.isEmpty()) subtitle = ""
+        if(description.isEmpty()) description = ""
         if(publisher.isEmpty()) publisher = ""
         if(publishedDate.isEmpty()) publishedDate = ""
         if(isbn.isEmpty()) isbn = ""
@@ -135,6 +119,7 @@ fun BookInfoInputScreen(
             furigana = furigana,
             author = author,
             subtitle = subtitle,
+            description = description,
             publisher = publisher,
             publishedDate = publishedDate,
             isbn = isbn,

@@ -24,8 +24,8 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
 
     fun getBookByIsbn(isbn:String){
         val oldState = currentState()
-        val flag = bookDao.searchIsbnBook(isbn)
-        updateState { oldState.copy(flag = flag.value) }
+        val book = bookDao.searchIsbnBook(isbn)
+        updateState { oldState.copy(book = book) }
     }
 
     fun addBook(book: Book){

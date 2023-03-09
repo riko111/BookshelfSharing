@@ -25,10 +25,10 @@ fun FilterScreen(
         padding ->
         Column(
             Modifier
-                .padding(padding)
-                .fillMaxWidth()
+                .padding(3.dp)
+                .fillMaxWidth(),
         ) {
-            Main(){ navController.navigate("detailedSearch/$it") }
+            Main{ navController.navigate("detailedSearch/$it") }
         }
     }
 }
@@ -53,75 +53,54 @@ private fun Main(doSearch:(str:String)->Unit){
     var publisher by remember { mutableStateOf("")}
     var tag by remember { mutableStateOf("") }
 
-    Column() {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "タイトル",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = title, onValueChange = {title = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "著者名",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "出版社",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "タグ",
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(0.08f)
-            )
-            TextField(value = tag, onValueChange = {tag = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-        OutlinedButton(
-            onClick = {
-                val searchMap = mutableMapOf<String, String>()
-                if(title.isNotBlank()){
-                    searchMap["title"] = title
-                }
-                if(author.isNotBlank()){
-                    searchMap["author"] = author
-                }
-                if(publisher.isNotBlank()){
-                    searchMap["publisher"] = publisher
-                }
-                if(tag.isNotBlank()){
-                    searchMap["tag"] = tag
-                }
-                if(searchMap.isNotEmpty()) {
-                    doSearch(searchMap.entries.joinToString())
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(3.dp)
-        ) {
-            Text(text = "検索", Modifier)
-        }
+    TextField(
+        label = {Text(text = "タイトル")},
+        modifier = Modifier.fillMaxWidth().padding(3.dp),
+        value = title, onValueChange = {title = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+
+    TextField(
+        label = {Text(text = "著者")},
+        modifier = Modifier.fillMaxWidth().padding(3.dp),
+        value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+
+    TextField(
+        label = {Text(text = "出版社")},
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(3.dp),
+        value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+
+    TextField(
+        label = {Text(text = "タグ")},
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(3.dp),
+        value = tag, onValueChange = {tag = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+
+    OutlinedButton(
+        onClick = {
+            val searchMap = mutableMapOf<String, String>()
+            if(title.isNotBlank()){
+                searchMap["title"] = title
+            }
+            if(author.isNotBlank()){
+                searchMap["author"] = author
+            }
+            if(publisher.isNotBlank()){
+                searchMap["publisher"] = publisher
+            }
+            if(tag.isNotBlank()){
+                searchMap["tag"] = tag
+            }
+            if(searchMap.isNotEmpty()) {
+                doSearch(searchMap.entries.joinToString())
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(3.dp)
+    ) {
+        Text(text = "検索", Modifier)
     }
+
 }

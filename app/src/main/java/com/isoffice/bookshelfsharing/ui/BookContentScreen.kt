@@ -9,11 +9,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.isoffice.bookshelfsharing.R
 
 import coil.compose.rememberAsyncImagePainter
@@ -31,9 +33,11 @@ import timber.log.Timber
 　openBD APIからの検索画面
  */
 @Composable
-fun BookContentScreen(barcode: String,
-                      user: FirebaseUser,
-                      bookViewModel: BookViewModel
+fun BookContentScreen(
+    navController: NavHostController,
+    barcode: String,
+    user: FirebaseUser,
+    bookViewModel: BookViewModel
 ) {
     val state by bookViewModel.state.collectAsState()
     BookContentScreen(
@@ -41,7 +45,9 @@ fun BookContentScreen(barcode: String,
         user,
         state,
         {bookViewModel.getBookByIsbn(it)},
-        {bookViewModel.addBook(it)}
+        {navController.navigate("inputBook/$it")},
+        {bookViewModel.addBook(it)},
+        {navController.navigate("bookDetail/$it")}
     )
 }
 
@@ -51,32 +57,92 @@ fun BookContentScreen(
     user:FirebaseUser,
     state: BookState,
     onSearchIsbn:(isbn:String) ->Unit,
-    onRegisterBook:(book:Book) ->Unit
+    onNavigateToInputBook:(isbn:String) -> Unit,
+    onRegisterBook:(book:Book) ->Unit,
+    onNavigateToDetail:(str:String)->Unit,
 ){
+    onSearchIsbn(barcode)
+    val bookInfo = state.book
     val context = LocalContext.current
-    var book :OpenBD? = null
-    runBlocking {
-        val job = launch {
-            book = withContext(Dispatchers.IO){
-                BookHttp.searchBook(barcode)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxSize(),
+    ) {
+        if(bookInfo != null) {    // 本棚にあるときは本棚から情報を持ってくる
+            val book = bookInfo.value!!.book
+            val painter = if(book.thumbnail != null && book.thumbnail != "") {
+                rememberAsyncImagePainter(book.thumbnail)
+            } else {
+                painterResource(id = R.drawable.ic_broken_image)
+            }
+
+            BookContent(
+                painter,
+                book.title,
+                book.subtitle,
+                book.author!!,
+                book.publisher!!,
+                book.publishedDate!!,
+            )
+            OutlinedButton(
+                onClick = {onNavigateToDetail(bookInfo.value!!.key)},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp)) {
+                Text(text = "本棚にあります", Modifier)
+            }
+        } else {    // 本棚にないときはOpenBDを検索
+            var book: OpenBD? = null
+            runBlocking {
+                val job = launch {
+                    book = withContext(Dispatchers.IO) {
+                        BookHttp.searchBook(barcode)
+                    }
+                }
+                job.join()
+            }
+            if (book == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "「$barcode」に該当する書籍がありません")
+                    OutlinedButton(
+                        onClick = { onNavigateToInputBook(barcode) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp)
+                    ) {
+                        Text(text = "手動本棚登録")
+                    }
+                }
+            } else {
+
+                var showDialog by remember { mutableStateOf(false) }
+                BookContent(book!!)
+                OutlinedButton(
+                    onClick = { showDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp)
+                ) {
+                    Text(text = "本棚登録", Modifier)
+                }
+                if(showDialog){
+                    RegisteredAlert(book!!, user, onRegisterBook,context)
+                }
             }
         }
-        job.join()
-    }
-    if(book == null){
-        Text(text = "該当する書籍がありません")
-    } else {
-        onSearchIsbn(barcode)
-        BookContent(state, book!!, user, onRegisterBook, context)
     }
 }
 @Composable
 private fun BookContent(
-    state: BookState,
-    item: OpenBD,
-    user:FirebaseUser,
-    onRegisterBook:(book:Book) ->Unit,
-    context: Context
+    item: OpenBD
 ) {
     val summary = item.summary
     val subtitle = item.onix.descriptiveDetail.titleDetail.titleElement.subtitle?.content
@@ -85,13 +151,30 @@ private fun BookContent(
     for (text in textContent){
         textMap[text.textType] = text.text
     }
-
-    var showDialog by remember { mutableStateOf(false) }
     val painter = if(summary.cover != null && summary.cover != "") {
         rememberAsyncImagePainter(summary.cover)
     } else {
         painterResource(id = R.drawable.ic_broken_image)
     }
+    BookContent(
+        painter,
+        item.summary.title,
+        subtitle,
+        item.summary.author,
+        item.summary.publisher,
+        item.summary.pubdate,
+    )
+}
+@Composable
+private fun BookContent(
+    painter:Painter,
+    title: String ,
+    subtitle: String?,
+    author: String?,
+    publisher:String?,
+    publishedDate: String?,
+) {
+
     Column (modifier = Modifier
         .padding(vertical = 2.dp)
         .fillMaxWidth()
@@ -100,56 +183,31 @@ private fun BookContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
 
-    ){
-        Row(modifier = Modifier
-            .padding(vertical = 2.dp),
+        ) {
+        Row(
+            modifier = Modifier
+                .padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = painter,
-                contentDescription = summary.title,
+                contentDescription = title,
                 modifier = Modifier.width(150.dp),
                 contentScale = ContentScale.Fit,
             )
-            Column(modifier = Modifier
-                .padding(vertical = 2.dp)
-                .weight(fill = true, weight = 1f)) {
-                Text(text = summary.title, fontWeight = FontWeight.Bold)
-                if(subtitle != null) Text(text = subtitle)
-                Spacer(modifier = Modifier.size(5.dp))
-                Text(text = summary.author.toString())
-                Text(text = summary.publisher.toString())
-                Text(text = summary.pubdate.toString())
-                Spacer(modifier = Modifier.size(5.dp))
-                if(textMap.size != 0){
-                    val map = textMap["02"]
-                    if(map != null) {
-                        Text(text = map)
-                    }
-                }
-            }
-        }
-        if(state.flag){
-            OutlinedButton(
-                onClick = {},
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(3.dp)) {
-                Text(text = "本棚にあります", Modifier)
-            }
-        } else {
-            OutlinedButton(
-                onClick = { showDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(3.dp)
+                    .padding(vertical = 2.dp)
+                    .weight(fill = true, weight = 1f)
             ) {
-                Text(text = "本棚登録", Modifier)
+                Text(text = title, fontWeight = FontWeight.Bold)
+                if (subtitle != null) Text(text = subtitle)
+                Spacer(modifier = Modifier.size(5.dp))
+                if (author != null) Text(text = author)
+                if (publisher != null) Text(text = publisher)
+                if (publishedDate != null) Text(text = publishedDate)
             }
         }
-    }
-    if(showDialog){
-        RegisteredAlert(item, user, onRegisterBook,context)
     }
 }
 
