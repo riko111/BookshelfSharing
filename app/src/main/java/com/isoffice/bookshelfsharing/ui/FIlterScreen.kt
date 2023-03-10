@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
+import kotlin.math.ceil
 
 @Composable
 fun FilterScreen(
@@ -57,63 +58,98 @@ private fun TopBar(onNavigateToMain:()->Unit) {
 private fun Main(
     tagSet:MutableSet<String>,
     doSearch:(str:String)->Unit,
-){
+) {
     var title by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
-    var publisher by remember { mutableStateOf("")}
+    var publisher by remember { mutableStateOf("") }
 
     TextField(
-        label = {Text(text = "タイトル")},
+        label = { Text(text = "タイトル") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(3.dp),
-        value = title, onValueChange = {title = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        value = title,
+        onValueChange = { title = it },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+    )
 
     TextField(
-        label = {Text(text = "著者")},
+        label = { Text(text = "著者") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(3.dp),
-        value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        value = author,
+        onValueChange = { author = it },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+    )
 
     TextField(
-        label = {Text(text = "出版社")},
+        label = { Text(text = "出版社") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(3.dp),
-        value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        value = publisher,
+        onValueChange = { publisher = it },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+    )
 
 
     var checkedTagNum by remember { mutableStateOf(-1) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Spacer(modifier = Modifier.size(10.dp))
-        RadioButton(selected = checkedTagNum==-1, onClick = { checkedTagNum = -1 })
-        Text(text = "タグなし")
-        tagSet.forEachIndexed {index, it ->
-            Spacer(modifier = Modifier.size(10.dp))
-            RadioButton(selected = checkedTagNum == index, onClick = { checkedTagNum = index })
-            Text(text = "#$it")
+
+    val tagCols = ceil((tagSet.size + 1) / 3.0).toInt()
+    var cnt = -1
+
+    for (i in 0 until tagCols) {
+        Column {
+            Row {
+                if (cnt == -1) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = checkedTagNum == -1,
+                            onClick = { checkedTagNum = -1 })
+                        Text(text = "タグなし")
+                        Spacer(modifier = Modifier.size(10.dp))
+                    }
+                    cnt++
+                }
+                val num = if(cnt == 0){1}else{2}
+                for (j in 0..num) {
+                    if(cnt >= tagSet.size) break
+                    val index = cnt
+                    val text = tagSet.elementAt(cnt)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = checkedTagNum == index,
+                            onClick = { checkedTagNum = index })
+                        Text(text = "#$text")
+                        Spacer(modifier = Modifier.size(10.dp))
+                    }
+                    cnt++
+                }
+            }
         }
     }
 
     OutlinedButton(
         onClick = {
             val searchMap = mutableMapOf<String, String>()
-            if(title.isNotBlank()){
+            if (title.isNotBlank()) {
                 searchMap["title"] = title
             }
-            if(author.isNotBlank()){
+            if (author.isNotBlank()) {
                 searchMap["author"] = author
             }
-            if(publisher.isNotBlank()){
+            if (publisher.isNotBlank()) {
                 searchMap["publisher"] = publisher
             }
-            if(checkedTagNum > -1){
+            if (checkedTagNum > -1) {
                 searchMap["tag"] = tagSet.elementAt(checkedTagNum)
             }
-            if(searchMap.isNotEmpty()) {
+            if (searchMap.isNotEmpty()) {
                 doSearch(searchMap.entries.joinToString())
             }
         },

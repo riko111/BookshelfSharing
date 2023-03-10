@@ -248,10 +248,11 @@ private fun deleteBook(key:String, bookDao: BookDao,navController:NavHostControl
 
 @Composable
 private fun AddTagDialog(
-    tagsListState: TagsListState,key:String,bookDao: BookDao
+    tagsListState: TagsListState,key: String,bookDao: BookDao
 ){
     val openDialog = remember{ mutableStateOf(true) }
     val (text, setText) = remember { mutableStateOf("")}
+
     if(openDialog.value){
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
@@ -274,8 +275,8 @@ private fun AddTagDialog(
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    tagsListState.tagListOnScreen.add(text)
                     bookDao.addTagList(key,text)
+                    tagsListState.tagListOnScreen.add(text)
                 }) {
                     Text("追加")
                 }
