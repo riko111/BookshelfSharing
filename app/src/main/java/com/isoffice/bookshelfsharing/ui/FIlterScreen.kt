@@ -54,6 +54,7 @@ private fun TopBar(onNavigateToMain:()->Unit) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Main(
     tagSet:MutableSet<String>,
@@ -96,44 +97,28 @@ private fun Main(
 
     var checkedTagNum by remember { mutableStateOf(-1) }
 
-    val tagCols = ceil((tagSet.size + 1) / 3.0).toInt()
-    var cnt = -1
-
-    for (i in 0 until tagCols) {
-        Column {
-            Row {
-                if (cnt == -1) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = checkedTagNum == -1,
-                            onClick = { checkedTagNum = -1 })
-                        Text(text = "タグなし")
-                        Spacer(modifier = Modifier.size(10.dp))
-                    }
-                    cnt++
-                }
-                val num = if(cnt == 0){1}else{2}
-                for (j in 0..num) {
-                    if(cnt >= tagSet.size) break
-                    val index = cnt
-                    val text = tagSet.elementAt(cnt)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = checkedTagNum == index,
-                            onClick = { checkedTagNum = index })
-                        Text(text = "#$text")
-                        Spacer(modifier = Modifier.size(10.dp))
-                    }
-                    cnt++
-                }
+    FlowRow {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = checkedTagNum == -1,
+                onClick = { checkedTagNum = -1 })
+            Text(text = "タグなし")
+            Spacer(modifier = Modifier.size(10.dp))
+        }
+        tagSet.forEachIndexed { index, it ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = checkedTagNum == index,
+                    onClick = { checkedTagNum = index })
+                Text(text = "#$it")
+                Spacer(modifier = Modifier.size(10.dp))
             }
         }
     }
-
     OutlinedButton(
         onClick = {
             val searchMap = mutableMapOf<String, String>()
