@@ -1,12 +1,14 @@
 package com.isoffice.bookshelfsharing.ui.viewModel
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.BookInfo
 
 data class BooksListState(
-    val bookList: MutableList<BookInfo> = mutableStateListOf()
+    val bookList: MutableList<BookInfo> = mutableStateListOf(),
+    val tagSet: MutableSet<String> = mutableSetOf()
 )
 
 class BooksViewModel (private val bookDao: BookDao):ViewModel() {
@@ -17,34 +19,26 @@ class BooksViewModel (private val bookDao: BookDao):ViewModel() {
 
     fun getAllBooksList(){  // deleteFlagがFalseのものを全件取得
         val list = bookDao.readAllBooks()
-        booksState = BooksListState(list)
+        val tagSet = getAllTags(list)
+        booksState = BooksListState(list, tagSet)
     }
 
 
     fun deleteBook(key:String){    //keyで論理削除
         val list = bookDao.deleteBook(key)
-        booksState = BooksListState(list)
+        val tagSet = getAllTags(list)
+        booksState = BooksListState(list,tagSet)
     }
-/*
-    fun searchTitle(title:String) {
-        val list = bookDao.titleSearchBook(title)
-        booksState = BooksListState(list)
+
+    private fun getAllTags(list:MutableList<BookInfo>): MutableSet<String> {
+        val tagSet = mutableSetOf<String>()
+
+        list.forEach{ bookInfo ->
+            val book = bookInfo.book
+            tagSet.addAll(book.tags.filterNot { it.isBlank() }.toSet())
+        }
+        return tagSet
     }
-*/
 
 
-    fun searchTag(tag:String) {
-        val list = bookDao.searchTag(tag)
-        booksState = BooksListState(list)
-    }
 }
-
-
-/*data class BookListState(
-    val bookList: MutableList<BookInfo>?
-)
-{
-    companion object{
-        val initList = BookListState(null)
-    }
-}*/

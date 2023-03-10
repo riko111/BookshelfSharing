@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                             it.arguments?.getString("title")!!
                         )
                     }
-                    composable("tagSearch/{tag}"){ //メイン画面（tag検索結果）
+                    composable("tagSearch/{tag}"){ //tag検索結果
                         TagSearchResultScreen(
                             navController,
                             booksViewModel,
@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
                             bookViewModel)
                     }
                     composable("filter"){// 詳細検索画面
-                        FilterScreen(navController)
+                        FilterScreen(navController, booksViewModel)
                     }
                     composable("detailedSearch/{str}"){// 詳細検索結果画面
                         DetailSearchResultScreen(
