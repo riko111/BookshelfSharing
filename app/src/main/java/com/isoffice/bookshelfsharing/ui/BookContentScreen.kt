@@ -70,7 +70,7 @@ fun BookContentScreen(
             .fillMaxWidth()
             .fillMaxSize(),
     ) {
-        if(bookInfo != null) {    // 本棚にあるときは本棚から情報を持ってくる
+        if(bookInfo?.value != null) {    // 本棚にあるときは本棚から情報を持ってくる
             val book = bookInfo.value!!.book
             val painter = if(book.thumbnail != null && book.thumbnail != "") {
                 rememberAsyncImagePainter(book.thumbnail)
