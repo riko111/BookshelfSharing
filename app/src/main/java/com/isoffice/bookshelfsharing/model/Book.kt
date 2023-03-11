@@ -13,7 +13,7 @@ data class Book(
     val ownerId : String? = null,
     val ownerIcon : String? = null,
     val description: String? = null,
-    val tags: MutableList<String> = mutableListOf(),
+    val tags: MutableSet<String>? = null,
     var deleteFlag : Boolean = false,
 )
 

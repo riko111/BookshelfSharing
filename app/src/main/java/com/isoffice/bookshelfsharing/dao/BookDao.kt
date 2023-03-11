@@ -17,7 +17,7 @@ import timber.log.Timber
 class BookDao(private val db: FirebaseFirestore) {
     private var bookList = mutableStateListOf<BookInfo>()
     var book = mutableStateOf<BookInfo?>(null)
-    var flag = mutableStateOf<Boolean>(false)
+    var set = mutableSetOf<String>()
     fun writeNewBook(book:Book) {
         db.collection("books")
             .add(book)
@@ -71,32 +71,6 @@ class BookDao(private val db: FirebaseFirestore) {
         return readAllBooks()
     }
 
-/*
-    fun titleSearchBook(keyword:String):MutableList<BookInfo>{
-        db.collection("books")
-            .whereEqualTo("deleteFlag", false)
-            .orderBy("title")
-            .startAt(keyword).endAt(keyword + '\uf8ff')
-            .addSnapshotListener{value,error ->
-                if(error != null){
-                    Timber.w("title search error.")
-                } else {
-                    bookList.removeAll(bookList)
-                    if(value != null) {
-                        for ( doc in value) {
-                            val item = doc.data
-                            val book = setSnapshotToBook(item)
-                            bookList.add(BookInfo(doc.id, book))
-                        }
-                        Timber.d("titleList:${bookList.size}")
-                    }
-                }
-            }
-        return bookList
-    }
-*/
-
-
     fun searchIsbnBook(isbn:String):MutableState<BookInfo?>{
         db.collection("books")
             .whereEqualTo("isbn", isbn)
@@ -115,6 +89,11 @@ class BookDao(private val db: FirebaseFirestore) {
         return book
     }
 
+    fun updateBook(key: String, book: Book){
+        val ref = db.collection("books").document(key)
+        val item = setBookToFireStore(book)
+        ref.update(item)
+    }
 
     fun addTagList(key:String, tag:String){
         val ref = db.collection("books").document(key)
@@ -125,35 +104,19 @@ class BookDao(private val db: FirebaseFirestore) {
         val ref = db.collection("books").document(key)
         ref.update("tags", FieldValue.arrayRemove(tag))
     }
-
-    fun searchTag(tag: String) :MutableList<BookInfo>{
-        val ref = db.collection("books")
-        ref.whereArrayContainsAny("tags", listOf(tag))
-            .orderBy("furigana")
-            .get()
-            .addOnFailureListener {
-                Timber.w("Error getting books.: $it")
+    private fun setTags(item: Map<String, Any>):MutableSet<String>{
+        val set = mutableSetOf<String>()
+        if(item["tags"] !=null){
+            val str = item["tags"].toString()
+            if(str.length>2) {
+                set.addAll(str.removePrefix("[").removeSuffix("]").split(", ").toSet())
             }
-            .addOnSuccessListener {
-                bookList.removeAll(bookList)
-                for(doc in it){
-                    val item = doc.data
-                    val book = setSnapshotToBook(item)
-                    bookList.add(BookInfo(doc.id,book))
-                }
-            }
-        return bookList
+        }
+        return set
     }
 
     private fun setSnapshotToBook(item: Map<String, Any>): Book {
-        val list = mutableListOf<String>()
-        if(item["tags"] !=null){
-            val str = item["tags"].toString()
-            val tmpList = str.removePrefix("[").removeSuffix("]").split(",").toList()
-            tmpList.forEach{
-                list.add(it.trim(' '))
-            }
-        }
+        val set = setTags(item)
 
         return Book(
             isbn = item["isbn"].toString(),
@@ -168,9 +131,30 @@ class BookDao(private val db: FirebaseFirestore) {
             subtitle = item["subtitle"]?.toString(),
             series = item["series"]?.toString(),
             ownerIcon = item["ownerIcon"].toString(),
-            tags = list,
+            tags = set,
             deleteFlag = item["deleteFlag"].toString().toBoolean()
         )
+    }
+
+    private fun setBookToFireStore(book: Book):MutableMap<String, Any?> {
+        val item = mutableMapOf<String, Any?>()
+
+        item["isbn"] = book.isbn
+        item["title"] = book.title
+        item["furigana"] = book.furigana
+        item["author"] = book.author
+        item["ownerId"] = book.ownerId
+        item["publisher"] = book.publisher
+        item["publishedDate"] = book.publishedDate
+        item["thumbnail"] = book.thumbnail
+        item["description"] = book.description
+        item["subtitle"] = book.subtitle
+        item["series"] = book.series
+        item["ownerIcon"] = book.ownerIcon
+        item["tags"] = if(book.tags != null){book.tags.toString()} else {null}
+        item["deleteFlag"] = book.deleteFlag.toString()
+
+        return item
     }
 }
 

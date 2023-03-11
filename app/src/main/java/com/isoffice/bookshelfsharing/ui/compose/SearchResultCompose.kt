@@ -12,7 +12,7 @@ import com.isoffice.bookshelfsharing.model.BookInfo
 
 
 @Composable
-fun SearchResultContents(
+fun SearchResultCompose(
     bookList: MutableList<BookInfo>,
     title: String,
     onNavigateToMain:()->Unit,

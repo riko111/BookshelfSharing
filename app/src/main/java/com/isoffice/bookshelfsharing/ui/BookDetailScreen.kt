@@ -1,7 +1,7 @@
 package com.isoffice.bookshelfsharing.ui
 
-
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -9,34 +9,49 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.Delete
+import androidx.compose.material.icons.sharp.Edit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontLoader
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.flowlayout.FlowRow
+import com.google.common.io.Files.append
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.TagsListState
 import com.isoffice.bookshelfsharing.ui.viewModel.TagsViewModel
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 
 /*　本棚の本の詳細 */
 @Composable
-fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel, tagsViewModel: TagsViewModel){
+fun BookDetailScreen(
+    key : String, bookDao: BookDao,viewModel: MainViewModel,
+){
     var book = remember { mutableStateOf<BookInfo?>(null) }
     runBlocking {
         val job = launch {
@@ -46,7 +61,7 @@ fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel, ta
     }
 
     Column(
-        if(book.value != null && book.value!!.book.deleteFlag){
+        if (book.value != null && book.value!!.book.deleteFlag) {
             Modifier.background(Color.Gray)
         } else {
             Modifier.background(Color.White)
@@ -60,14 +75,17 @@ fun BookDetailScreen(key : String, bookDao: BookDao,viewModel: MainViewModel, ta
                 CircularProgressIndicator()
             }
         }else {
-            tagsViewModel.setTagsList(book.value!!.book)
-            BookContent(book,  bookDao, viewModel, tagsViewModel.tagsState)
+            BookContent(book,  bookDao, viewModel, )
         }
     }
 }
 
 @Composable
-private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, viewModel: MainViewModel, tagsListState: TagsListState) {
+private fun BookContent(
+    bookInfo: MutableState<BookInfo?>,
+    bookDao: BookDao,
+    viewModel: MainViewModel,
+) {
     val book = bookInfo.value!!.book
     var showDialog by remember { mutableStateOf(false) }
 
@@ -87,54 +105,47 @@ private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, vie
             .padding(vertical = 2.dp)
             .verticalScroll(rememberScrollState())
             .fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Image(
-            painter = painter,
-            contentDescription = book.title,
-            modifier = Modifier.size(200.dp),
-            contentScale = ContentScale.Fit,
-        )
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,) {
-            Row(
-                modifier = Modifier
-                    .padding(vertical = 2.dp)
+        val nestedScrollInterop = rememberNestedScrollInteropConnection()
+        Row(
+            modifier = Modifier
+                .padding(vertical = 2.dp)
+        ){
+            Image(
+                painter = painter,
+                contentDescription = book.title,
+                modifier = Modifier.size(200.dp),
+                contentScale = ContentScale.Fit,
             )
-            {
+            Spacer(modifier = Modifier.size(3.dp))
+            Column(
+                verticalArrangement = Arrangement.Center,){
                 Image(
                     painter = icon, contentDescription = book.ownerId,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
                 )
-                Spacer(modifier = Modifier.size(3.dp))
-                Column(
-                    modifier = Modifier
-                        .padding(vertical = 2.dp)
-                        .weight(fill = true, weight = 1f)
-                ) {
-                    Text(text = book.title, fontWeight = FontWeight.Bold)
-                    if (book.subtitle != null) Text(text = book.subtitle)
-                    if (book.description != null) Text(text = book.description)
-                    Spacer(modifier = Modifier.size(5.dp))
-                    Text(text = book.author.toString())
-                    Text(text = book.publisher.toString())
-                    if (book.publishedDate != null) Text(text = book.publishedDate)
-                }
-
+            }
         }
 
-        Column(
-                modifier = Modifier
-                    .padding(vertical = 2.dp)
-                    .weight(fill = true, weight = 1f)
-        ) {
-                TagCompose(bookInfo, bookDao,tagsListState) { viewModel.navController!!.navigate("tagSearch/$it") }
+        Text(text = book.title, fontWeight = FontWeight.Bold)
+
+        if (book.subtitle != null) Text(text = book.subtitle)
+        Spacer(modifier = Modifier.size(5.dp))
+        Text(text = book.author.toString())
+        Text(text = book.publisher.toString())
+        if (book.publishedDate != null) Text(text = book.publishedDate)
+        if (book.description != null) {
+            Text(text = book.description,
+                maxLines = 10,)
         }
-            Spacer(modifier = Modifier.padding(20.dp))
+
+        TagCompose(bookInfo, bookDao, ) { viewModel.navController!!.navigate("tagSearch/$it") }
+
+        Spacer(modifier = Modifier.padding(20.dp))
+        Row{
             if(!book.deleteFlag) {
                 IconButton(onClick = { showDialog = true }) {
                     Icon(
@@ -145,24 +156,38 @@ private fun BookContent(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, vie
                     )
                 }
             }
+            IconButton(onClick = { viewModel.navController!!.navigate("bookInfoEdit/${bookInfo.value!!.key}")  }) {
+                Icon(
+                    Icons.Sharp.Edit,
+                    contentDescription = "",
+                    tint = colorResource(id = com.isoffice.bookshelfsharing.R.color.brown_1),
+                    modifier = Modifier.size(25.dp)
+                )
+            }
         }
     }
+
     if(showDialog){
         DeleteConfirm(bookInfo.value!!, bookDao, viewModel.navController!!)
     }
 }
 
 @Composable
-private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, tagsListState: TagsListState,
-                       onNavigateToTagSearch: (tag: String) -> Unit){
-    val tagList = tagsListState.tagListOnScreen
+private fun TagCompose(
+    bookInfo: MutableState<BookInfo?>,
+    bookDao: BookDao,
+    onNavigateToTagSearch: (tag: String) -> Unit
+){
+    val tagsState = rememberTagsState()
+    bookInfo.value!!.book.tags?.let { tagsState.replaceAllSet(it) }
+
     var showDeleteTagDialog by remember { mutableStateOf(false)}
     var showTagDialog by remember { mutableStateOf(false)}
     val tag = remember {mutableStateOf("")}
     Spacer(modifier = Modifier.size(5.dp))
     FlowRow(modifier = Modifier.padding(20.dp)) {
-        if(tagList.isNotEmpty()){
-            tagList.forEach {
+        if(tagsState.set.isNotEmpty()){
+            tagsState.set.forEach {
                 Row{
                     Text(
                         text = it,
@@ -202,10 +227,10 @@ private fun TagCompose(bookInfo: MutableState<BookInfo?>, bookDao: BookDao, tags
     }
 
     if(showDeleteTagDialog){
-        DeleteTagDialog(tagsListState,bookInfo.value!!.key, tag.value, bookDao )
+        DeleteTagDialog(bookInfo, tag.value, tagsState, bookDao )
     }
     if(showTagDialog){
-        AddTagDialog(tagsListState,bookInfo.value!!.key, bookDao)
+        AddTagDialog(bookInfo, tagsState, bookDao)
     }
 }
 
@@ -248,10 +273,11 @@ private fun deleteBook(key:String, bookDao: BookDao,navController:NavHostControl
 
 @Composable
 private fun AddTagDialog(
-    tagsListState: TagsListState,key: String,bookDao: BookDao
+    bookInfo: MutableState<BookInfo?>, tagsState: TagsState, bookDao: BookDao
 ){
     val openDialog = remember{ mutableStateOf(true) }
     val (text, setText) = remember { mutableStateOf("")}
+    val key = bookInfo.value!!.key
 
     if(openDialog.value){
         AlertDialog(
@@ -266,8 +292,8 @@ private fun AddTagDialog(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             openDialog.value = false
-                            tagsListState.tagListOnScreen.add(text)
                             bookDao.addTagList(key,text)
+                            tagsState.addSet(text)
                         }
                     )
                 )
@@ -276,7 +302,7 @@ private fun AddTagDialog(
                 TextButton(onClick = {
                     openDialog.value = false
                     bookDao.addTagList(key,text)
-                    tagsListState.tagListOnScreen.add(text)
+                    tagsState.addSet(text)
                 }) {
                     Text("追加")
                 }
@@ -294,12 +320,14 @@ private fun AddTagDialog(
 
 @Composable
 private fun DeleteTagDialog(
-    tagsListState: TagsListState,
-    key: String,
+    bookInfo: MutableState<BookInfo?>,
     tag: String,
+    tagsState: TagsState,
     bookDao: BookDao
 ){
     val openDialog = remember{ mutableStateOf(true) }
+    val key = bookInfo.value!!.key
+
     if(openDialog.value){
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
@@ -309,7 +337,7 @@ private fun DeleteTagDialog(
                 TextButton(onClick = {
                     openDialog.value = false
                     bookDao.deleteTag(key,tag)
-                    tagsListState.tagListOnScreen.remove(tag)
+                    tagsState.deleteSet(tag)
                 }) {
                     Text("削除")
                 }
@@ -323,4 +351,33 @@ private fun DeleteTagDialog(
             }
         )
     }
+}
+
+
+
+
+
+
+@Composable
+private fun rememberTagsState(): TagsState{
+    return remember{
+        TagsState()
+    }
+}
+
+@Stable
+class TagsState{
+    val set = mutableSetOf<String>()
+
+    fun replaceAllSet(tempSet:MutableSet<String>){
+        set.clear()
+        set.addAll(tempSet)
+    }
+    fun addSet(tag:String){
+        set.add(tag)
+    }
+    fun deleteSet(tag: String){
+        set.remove(tag)
+    }
+
 }

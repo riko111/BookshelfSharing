@@ -35,7 +35,7 @@ class BooksViewModel (private val bookDao: BookDao):ViewModel() {
 
         list.forEach{ bookInfo ->
             val book = bookInfo.book
-            tagSet.addAll(book.tags.filterNot { it.isBlank() }.toSet())
+            book.tags?.let { it1 -> tagSet.addAll(it1.filterNot { it.isBlank() }) }
         }
         return tagSet
     }

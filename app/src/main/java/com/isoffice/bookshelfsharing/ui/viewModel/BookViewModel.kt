@@ -31,6 +31,10 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
     fun addBook(book: Book){
         bookDao.writeNewBook(book)
     }
+
+    fun updateBook(key:String,book:Book){
+        bookDao.updateBook(key,book)
+    }
 }
 
 data class BookState(

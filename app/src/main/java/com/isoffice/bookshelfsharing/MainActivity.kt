@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private val booksViewModel = BooksViewModel(bookDao)
     private val bookViewModel = BookViewModel(bookDao)
     private val scrollViewModel = ScrollViewModel()
+    private val tagsViewModel = TagsViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,11 +61,11 @@ class MainActivity : ComponentActivity() {
                 Timber.w(e, "Google sign in failed")
             }
         }
-
         setContent {
             BookshelfSharingTheme {
                 viewModel.navController = rememberNavController()
                 val navController = viewModel.navController!!
+
                 NavHost(navController = navController, startDestination = "auth" ) {
                     composable("auth") { //google認証画面
                         AuthScreen(
@@ -110,15 +111,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
-
                         it.arguments?.getString("key")?.let{ key ->
-                            BookDetailScreen(key, bookDao, viewModel, TagsViewModel())
+                            BookDetailScreen(key, bookDao, viewModel,)
+                        }
+                    }
+                    composable("bookInfoEdit/{key}"){ //本の情報編集画面
+                        it.arguments?.getString("key")?.let{ key ->
+                            BookInfoUpdateScreen(
+                                navController,
+                                key, bookDao, bookViewModel,)
                         }
                     }
                     composable("inputISBN"){    //ISBN手入力画面
                         ISBNCodeInputScreen { navController.navigate("book/$it") }
                     }
-                    composable("inputBook/{isbn}"){    // 手動登録
+                    composable("inputBook/{isbn}"){    // 手動登録(ISBN見つからなかったとき)
                         BookInfoInputScreen(
                             navController,viewModel.currentUser!!,
                             it.arguments?.getString("isbn")!!,

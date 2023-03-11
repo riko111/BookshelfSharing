@@ -1,12 +1,8 @@
 package com.isoffice.bookshelfsharing.ui
 
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
-import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.localData.getBooksListByDetailSearch
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
@@ -29,7 +25,7 @@ fun DetailSearchResultScreen(
 
     val resultList = getBooksListByDetailSearch(searchMap, allList)
 
-    SearchResultContents(
+    SearchResultCompose(
         resultList,
         "詳細検索",
         { navController.navigate("main")},
