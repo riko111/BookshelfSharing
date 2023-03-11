@@ -27,7 +27,8 @@ data class VolumeInfo(
     val publisher: String? = null,
     val publishedDate: String? = null,
     val pageCount: Int? = null,
-    val imageLinks: ImageLinks? = null
+    val imageLinks: ImageLinks? = null,
+    val industryIdentifiers: List<IndustryIdentifier>? = null
 ):Parcelable
 
 @Serializable
@@ -35,4 +36,11 @@ data class VolumeInfo(
 data class ImageLinks(
     val smallThumbnail: String?,
     val thumbnail: String?
+):Parcelable
+
+@Serializable
+@Parcelize
+data class IndustryIdentifier(
+    val type:String,
+    val identifier:String
 ):Parcelable

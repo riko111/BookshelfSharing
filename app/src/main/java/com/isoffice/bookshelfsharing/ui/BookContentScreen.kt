@@ -21,6 +21,7 @@ import com.isoffice.bookshelfsharing.R
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.dao.BookOpenBDMapper
+import com.isoffice.bookshelfsharing.dao.GoogleBooksMapper
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookHttp
 import com.isoffice.bookshelfsharing.model.GoogleBooks
@@ -28,10 +29,9 @@ import com.isoffice.bookshelfsharing.model.OpenBD
 import com.isoffice.bookshelfsharing.ui.viewModel.BookState
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 import kotlinx.coroutines.*
-import timber.log.Timber
 
 /*
-　openBD APIからの検索画面
+　APIからの検索画面
  */
 @Composable
 fun BookContentScreen(
@@ -48,6 +48,7 @@ fun BookContentScreen(
         {bookViewModel.getBookByIsbn(it)},
         {navController.navigate("inputBook/$it")},
         {bookViewModel.addBook(it)},
+        {navController.navigate("main")},
         {navController.navigate("bookDetail/$it")}
     )
 }
@@ -60,6 +61,7 @@ fun BookContentScreen(
     onSearchIsbn:(isbn:String) ->Unit,
     onNavigateToInputBook:(isbn:String) -> Unit,
     onRegisterBook:(book:Book) ->Unit,
+    onNavigateToMain:() -> Unit,
     onNavigateToDetail:(str:String)->Unit,
 ){
     onSearchIsbn(barcode)
@@ -83,9 +85,9 @@ fun BookContentScreen(
                 painter,
                 book.title,
                 book.subtitle,
-                book.author!!,
-                book.publisher!!,
-                book.publishedDate!!,
+                book.author,
+                book.publisher,
+                book.publishedDate,
             )
             OutlinedButton(
                 onClick = {onNavigateToDetail(bookInfo.value!!.key)},
@@ -95,28 +97,28 @@ fun BookContentScreen(
                 Text(text = "本棚にあります", Modifier)
             }
         } else {    // 本棚にないときはOpenBDを検索
-            var book: OpenBD? = null
+            var openBD: OpenBD? = null
             runBlocking {
                 val job = launch {
-                    book = withContext(Dispatchers.IO) {
+                    openBD = withContext(Dispatchers.IO) {
                         BookHttp.searchBook(barcode)
                     }
                 }
                 job.join()
             }
-            if (book == null) { // それでもないときはGoogleBooksAPIを検索
+            if (openBD == null) { // それでもないときはGoogleBooksAPIを検索
 
-                var book2: GoogleBooks? = null
+                var googleBooks: GoogleBooks? = null
                 runBlocking {
                     val job = launch {
-                        book2 = withContext(Dispatchers.IO) {
+                        googleBooks = withContext(Dispatchers.IO) {
                             BookHttp.searchBookByGoogle(barcode)
                         }
                     }
                     job.join()
                 }
 
-                if(book2 == null || book2!!.items == null) {
+                if(googleBooks == null || googleBooks!!.items == null) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -136,7 +138,8 @@ fun BookContentScreen(
                     }
                 }else {
                     var showDialog by remember { mutableStateOf(false) }
-                    BookContent(book2!!)
+                    val book = GoogleBooksMapper.GooglsBookToBook(googleBooks!!,user)
+                    BookContent(book)
                     OutlinedButton(
                         onClick = { showDialog = true },
                         modifier = Modifier
@@ -146,13 +149,13 @@ fun BookContentScreen(
                         Text(text = "本棚登録", Modifier)
                     }
                     if(showDialog){
-                        RegisteredAlert(book!!, user, onRegisterBook,context)
+                        RegisteredAlert(book, onRegisterBook, onNavigateToMain,context)
                     }
                 }
             } else {
-
+                val book = BookOpenBDMapper.openBDToBook(openBD!!, user)
                 var showDialog by remember { mutableStateOf(false) }
-                BookContent(book!!)
+                BookContent(book)
                 OutlinedButton(
                     onClick = { showDialog = true },
                     modifier = Modifier
@@ -162,7 +165,7 @@ fun BookContentScreen(
                     Text(text = "本棚登録", Modifier)
                 }
                 if(showDialog){
-                    RegisteredAlert(book!!, user, onRegisterBook,context)
+                    RegisteredAlert(book, onRegisterBook, onNavigateToMain,context)
                 }
             }
         }
@@ -170,47 +173,21 @@ fun BookContentScreen(
 }
 @Composable
 private fun BookContent(
-    item: OpenBD
+    book: Book
 ) {
-    val summary = item.summary
-    val subtitle = item.onix.descriptiveDetail.titleDetail.titleElement.subtitle?.content
-    val textContent = item.onix.collateralDetail.textContent
-    val textMap = HashMap<String,String>()
-    for (text in textContent){
-        textMap[text.textType] = text.text
-    }
-    val painter = if(summary.cover != null && summary.cover != "") {
-        rememberAsyncImagePainter(summary.cover)
-    } else {
-        painterResource(id = R.drawable.ic_broken_image)
-    }
-    BookContent(
-        painter,
-        item.summary.title,
-        subtitle,
-        item.summary.author,
-        item.summary.publisher,
-        item.summary.pubdate,
-    )
-}
-@Composable
-private fun BookContent(
-    item: GoogleBooks
-) {
-    val info = item.items!![0].volumeInfo
-    val painter = if(info.imageLinks != null && info.imageLinks.thumbnail != "") {
-        rememberAsyncImagePainter(info.imageLinks.thumbnail)
+    val painter = if(book.thumbnail != null && book.thumbnail != "") {
+        rememberAsyncImagePainter(book.thumbnail)
     } else {
         painterResource(id = R.drawable.ic_broken_image)
     }
 
     BookContent(
         painter,
-        info.title,
-        info.subtitle,
-        info.authors?.joinToString()?:"",
-        info.publisher,
-        info.publishedDate,
+        book.title,
+        book.subtitle,
+        book.author,
+        book.publisher,
+        book.publishedDate,
     )
 }
 @Composable
@@ -260,23 +237,24 @@ private fun BookContent(
 }
 
 @Composable
-private fun RegisteredAlert(item: OpenBD,
-                    user: FirebaseUser,
-                    onRegisterBook:(book:Book) ->Unit,
-                    context: Context
+private fun RegisteredAlert(book:Book,
+                            onRegisterBook:(book:Book) ->Unit,
+                            onNavigateToMain:() -> Unit,
+                            context: Context
 ){
     val openDialog = remember{ mutableStateOf(true) }
+
     if(openDialog.value){
         AlertDialog(
             onDismissRequest = { openDialog.value = false },
             title = {
-                val title = item.summary.title
+                val title = book.title
                 Text(text = "「${title}」を本棚に入れますか？")
             },
             confirmButton = {
                 TextButton(onClick = {
                     openDialog.value = false
-                    registerBook(item, user, onRegisterBook,context)
+                    registerBook(book, onRegisterBook, onNavigateToMain,context)
                 }) {
                     Text("はい")
                 }
@@ -292,18 +270,15 @@ private fun RegisteredAlert(item: OpenBD,
     }
 }
 
-/*
- openBDの検索結果を本棚に追加する
- */
-private fun registerBook(
-    item: OpenBD,
-    user: FirebaseUser,
+
+private fun registerBook(book:Book,
     onRegisterBook:(book:Book) ->Unit,
+    onNavigateToMain:() -> Unit,
     context: Context) {
-    val book = BookOpenBDMapper.openBDToBook(item,user)
     runBlocking {
         val job2 = launch {
             onRegisterBook(book)
+            onNavigateToMain()
         }
         job2.join()
         Toast.makeText(context,"${book.title}を登録しました",Toast.LENGTH_LONG).show()
