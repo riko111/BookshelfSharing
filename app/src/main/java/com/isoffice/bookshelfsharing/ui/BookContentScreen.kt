@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.dao.BookOpenBDMapper
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookHttp
+import com.isoffice.bookshelfsharing.model.GoogleBooks
 import com.isoffice.bookshelfsharing.model.OpenBD
 import com.isoffice.bookshelfsharing.ui.viewModel.BookState
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
@@ -103,22 +104,49 @@ fun BookContentScreen(
                 }
                 job.join()
             }
-            if (book == null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "「$barcode」に該当する書籍がありません")
+            if (book == null) { // それでもないときはGoogleBooksAPIを検索
+
+                var book2: GoogleBooks? = null
+                runBlocking {
+                    val job = launch {
+                        book2 = withContext(Dispatchers.IO) {
+                            BookHttp.searchBookByGoogle(barcode)
+                        }
+                    }
+                    job.join()
+                }
+
+                if(book2 == null || book2!!.items == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "「$barcode」に該当する書籍がありません")
+                        OutlinedButton(
+                            onClick = { onNavigateToInputBook(barcode) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(3.dp)
+                        ) {
+                            Text(text = "手動本棚登録")
+                        }
+                    }
+                }else {
+                    var showDialog by remember { mutableStateOf(false) }
+                    BookContent(book2!!)
                     OutlinedButton(
-                        onClick = { onNavigateToInputBook(barcode) },
+                        onClick = { showDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(3.dp)
                     ) {
-                        Text(text = "手動本棚登録")
+                        Text(text = "本棚登録", Modifier)
+                    }
+                    if(showDialog){
+                        RegisteredAlert(book!!, user, onRegisterBook,context)
                     }
                 }
             } else {
@@ -163,6 +191,26 @@ private fun BookContent(
         item.summary.author,
         item.summary.publisher,
         item.summary.pubdate,
+    )
+}
+@Composable
+private fun BookContent(
+    item: GoogleBooks
+) {
+    val info = item.items!![0].volumeInfo
+    val painter = if(info.imageLinks != null && info.imageLinks.thumbnail != "") {
+        rememberAsyncImagePainter(info.imageLinks.thumbnail)
+    } else {
+        painterResource(id = R.drawable.ic_broken_image)
+    }
+
+    BookContent(
+        painter,
+        info.title,
+        info.subtitle,
+        info.authors?.joinToString()?:"",
+        info.publisher,
+        info.publishedDate,
     )
 }
 @Composable

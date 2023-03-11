@@ -8,7 +8,8 @@ import java.lang.Exception
 import java.util.concurrent.TimeUnit
 
 object BookHttp{
-    private const val BOOK_JSON_URL = "https://api.openbd.jp/v1/get?isbn=%s"
+    private const val OPENBD_JSON_URL = "https://api.openbd.jp/v1/get?isbn=%s"
+    private const val GOOGLEBOOKS_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s"
 
 
     private val client = OkHttpClient.Builder()
@@ -18,7 +19,7 @@ object BookHttp{
 
     fun searchBook(q: String): OpenBD?{
         val request = Request.Builder()
-            .url(String.format(BOOK_JSON_URL, q))
+            .url(String.format(OPENBD_JSON_URL, q))
             .build()
 
         try {
@@ -29,6 +30,22 @@ object BookHttp{
                 val formatter = Json { ignoreUnknownKeys = true }
                 return formatter.decodeFromString(OpenBD.serializer(), json!!)
             }
+        } catch (e: Exception) {
+            Timber.e(e)
+        }
+        return null
+    }
+
+
+    fun searchBookByGoogle(q:String):GoogleBooks? {
+        val request = Request.Builder()
+            .url(String.format(GOOGLEBOOKS_URL, q))
+            .build()
+        try{
+            val response = client.newCall(request).execute()
+            val json = response.body?.string()
+            val formatter = Json { ignoreUnknownKeys = true }
+            return formatter.decodeFromString(GoogleBooks.serializer(), json!!)
         } catch (e: Exception) {
             Timber.e(e)
         }
