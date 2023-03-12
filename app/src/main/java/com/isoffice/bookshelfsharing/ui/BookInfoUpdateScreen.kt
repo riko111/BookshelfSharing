@@ -71,7 +71,7 @@ fun BookInfoUpdateScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(3.dp),
-            label = {Text("ふりがな")},
+            label = {Text("フリガナ")},
             value = furigana, onValueChange = {furigana = it},
             placeholder = { Text(text = "フリガナ") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)

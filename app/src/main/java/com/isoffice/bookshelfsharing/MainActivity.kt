@@ -1,16 +1,21 @@
 package com.isoffice.bookshelfsharing
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -37,7 +42,7 @@ class MainActivity : ComponentActivity() {
     private val booksViewModel = BooksViewModel(bookDao)
     private val bookViewModel = BookViewModel(bookDao)
     private val scrollViewModel = ScrollViewModel()
-    private val tagsViewModel = TagsViewModel()
+    private val tagsViewModel = TagsViewModel(bookDao)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +66,7 @@ class MainActivity : ComponentActivity() {
                 Timber.w(e, "Google sign in failed")
             }
         }
+
         setContent {
             BookshelfSharingTheme {
                 viewModel.navController = rememberNavController()
@@ -78,6 +84,7 @@ class MainActivity : ComponentActivity() {
                             navController,
                             user = viewModel.currentUser!!.email.toString(),
                             bookDao,
+                            booksViewModel,
                             scrollViewModel
                         )
                     }
@@ -112,7 +119,7 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
                         it.arguments?.getString("key")?.let{ key ->
-                            BookDetailScreen(key, bookDao, viewModel,)
+                            BookDetailScreen(key, bookDao, bookViewModel, viewModel,)
                         }
                     }
                     composable("bookInfoEdit/{key}"){ //本の情報編集画面

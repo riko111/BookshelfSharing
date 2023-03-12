@@ -17,7 +17,7 @@ class BooksViewModel (private val bookDao: BookDao):ViewModel() {
         private set
 
 
-    fun getAllBooksList(){  // deleteFlagがFalseのものを全件取得
+    fun getAllBooksList(){
         val list = bookDao.readAllBooks()
         val tagSet = getAllTags(list)
         booksState = BooksListState(list, tagSet)

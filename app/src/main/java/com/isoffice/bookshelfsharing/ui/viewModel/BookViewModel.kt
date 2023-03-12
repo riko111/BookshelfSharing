@@ -21,6 +21,11 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
         booksStateFlow.value = newState()
     }
 
+    fun getBookByKey(key:String){
+        val oldState = currentState()
+        val book = bookDao.readBook(key)
+        updateState { oldState.copy(book = book) }
+    }
 
     fun getBookByIsbn(isbn:String){
         val oldState = currentState()
@@ -35,6 +40,27 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
     fun updateBook(key:String,book:Book){
         bookDao.updateBook(key,book)
     }
+
+    fun addTag(key:String,tag:String){
+        val oldState = currentState()
+        bookDao.addTagSet(key,tag)
+        val book = currentState().book
+        if (book != null) {
+            book.value!!.book.tags?.add(tag)
+        }
+        updateState {  oldState.copy(book = book) }
+    }
+
+    fun deleteTag(key:String,tag:String){
+        val oldState = currentState()
+        bookDao.deleteTag(key,tag)
+        val book = currentState().book
+        if (book != null) {
+            book.value!!.book.tags?.remove(tag)
+        }
+        updateState {  oldState.copy(book = book) }
+    }
+
 }
 
 data class BookState(

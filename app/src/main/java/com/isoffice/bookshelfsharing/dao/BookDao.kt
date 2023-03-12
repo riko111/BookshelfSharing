@@ -95,7 +95,7 @@ class BookDao(private val db: FirebaseFirestore) {
         ref.update(item)
     }
 
-    fun addTagList(key:String, tag:String){
+    fun addTagSet(key:String, tag:String){
         val ref = db.collection("books").document(key)
         ref.update("tags", FieldValue.arrayUnion(tag))
     }

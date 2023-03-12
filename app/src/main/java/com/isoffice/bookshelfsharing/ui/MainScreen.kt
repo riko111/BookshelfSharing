@@ -1,5 +1,9 @@
 package com.isoffice.bookshelfsharing.ui
 
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,7 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -30,8 +36,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionStatus
+import com.google.accompanist.permissions.rememberPermissionState
 import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.BookInfo
@@ -41,6 +52,8 @@ import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
 import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
+import java.security.Permission
 
 
 @Composable
@@ -48,8 +61,10 @@ fun MainScreen(
     navController:NavHostController,
     user: String,
     bookDao: BookDao,
+    booksViewModel: BooksViewModel,
     scrollViewModel: ScrollViewModel
 ) {
+    RequestPermission()
     MainScreen(
         user,
         bookDao,
@@ -57,7 +72,7 @@ fun MainScreen(
         { navController.navigate("bookDetail/$it")},
         { navController.navigate("titleSearch/$it")},
         { navController.navigate("filter")},
-        { BooksViewModel(bookDao).deleteBook(it) },
+        { booksViewModel.deleteBook(it) },
         { scrollViewModel.setScrollIndex(it)},
         { navController.navigate("inputISBN")},
         { navController.navigate("inputBook")},
@@ -270,7 +285,6 @@ private fun MainContent(
     } else {
         getOtherBooksList(user,booksViewModel.booksState.bookList,checkedState.value)
     }
-    //val bookState = booksViewModel.booksState
 
     MainContent(
         list,
@@ -330,7 +344,6 @@ fun DeleteSetBar(checkedState:MutableState<Boolean>){
 
 @Composable
 fun BookList(
-//    bookList: MutableList<BookInfo>,
     bookInfo: BookInfo,
     textWidth: Dp,
     onNavigateToDetail:(str:String)->Unit,
@@ -391,7 +404,6 @@ fun BookList(
 
 @Composable
 private fun DeleteConfirm(
-    //bookList: MutableList<BookInfo>,
     bookInfo: BookInfo,
     onClickDelete:(key:String)->Unit
 ){
@@ -429,5 +441,47 @@ private fun deleteBook(
 ){
     onClickDelete(bookInfo.key)
 }
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun RequestPermissionUsingAccompanist(){
+    val permission = android.Manifest.permission.CAMERA
+    val permissionState = rememberPermissionState(permission)
+    if(permissionState.status != PermissionStatus.Granted){
+        ActivityResultContracts.RequestPermission()
+    }
+}
 
 
+@Composable
+private fun RequestPermission(){
+    val context = LocalContext.current
+
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
+    val permission = android.Manifest.permission.CAMERA
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = {isGranted -> Timber.v("TEST", "PERMISSION REQUEST RESULT $isGranted")}
+    )
+
+    val lifecycleObserver = remember {
+        LifecycleEventObserver{_, event ->
+            if(event == Lifecycle.Event.ON_START){
+                if(!permission.isGrantedPermission(context)){
+                    launcher.launch(permission)
+                }
+            }
+        }
+    }
+    DisposableEffect(lifecycle, lifecycleObserver) {
+        lifecycle.addObserver(lifecycleObserver)
+        onDispose {
+            lifecycle.removeObserver(lifecycleObserver)
+        }
+    }
+
+}
+
+private fun String.isGrantedPermission(context: Context):Boolean {
+    return context.checkSelfPermission(this) == PackageManager.PERMISSION_GRANTED
+}
