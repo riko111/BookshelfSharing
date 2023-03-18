@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+
+
         setContent {
             BookshelfSharingTheme {
                 viewModel.navController = rememberNavController()
@@ -169,6 +171,9 @@ class MainActivity : ComponentActivity() {
         }
 
     }
+
+
+
 
     private fun configureTimber() {
         if(BuildConfig.DEBUG) {

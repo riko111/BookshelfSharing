@@ -2,8 +2,10 @@ package com.isoffice.bookshelfsharing.ui
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
@@ -441,35 +444,32 @@ private fun deleteBook(
 ){
     onClickDelete(bookInfo.key)
 }
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-private fun RequestPermissionUsingAccompanist(){
-    val permission = android.Manifest.permission.CAMERA
-    val permissionState = rememberPermissionState(permission)
-    if(permissionState.status != PermissionStatus.Granted){
-        ActivityResultContracts.RequestPermission()
-    }
-}
 
-
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 private fun RequestPermission(){
     val context = LocalContext.current
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
-    val permission = android.Manifest.permission.CAMERA
+    val permission1 = android.Manifest.permission.CAMERA
+    val permission2 = android.Manifest.permission.READ_MEDIA_IMAGES
+
+    val permissions = arrayOf(permission1,permission2)
+
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = {isGranted -> Timber.v("TEST", "PERMISSION REQUEST RESULT $isGranted")}
     )
 
     val lifecycleObserver = remember {
         LifecycleEventObserver{_, event ->
             if(event == Lifecycle.Event.ON_START){
-                if(!permission.isGrantedPermission(context)){
-                    launcher.launch(permission)
+                var flag = true
+                permissions.forEach {
+                    flag = it.isGrantedPermission(context) && flag
                 }
+                if(!flag) launcher.launch(permissions)
             }
         }
     }

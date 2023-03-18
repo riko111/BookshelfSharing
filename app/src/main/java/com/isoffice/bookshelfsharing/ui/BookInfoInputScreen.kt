@@ -1,17 +1,31 @@
 package com.isoffice.bookshelfsharing.ui
 
+import android.app.Activity
 import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.CameraEnhance
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
+import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.OpenBD
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
@@ -33,12 +47,71 @@ fun BookInfoInputScreen(
     var publishedDate by remember { mutableStateOf("")}
     var isbn by remember { mutableStateOf(barcode)}
     var showDialog by remember { mutableStateOf(false) }
+    var thumbnail by remember { mutableStateOf("")}
+    var uri: Uri? = null
+
+    val painter = if(thumbnail.isNotBlank()) {
+        rememberAsyncImagePainter(thumbnail)
+    } else {
+        painterResource(id = R.drawable.ic_broken_image)
+    }
+
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = {result:  ActivityResult ->
+            if(result.resultCode == Activity.RESULT_OK){
+                imageUri = result.data?.data ?: uri
+            }
+        }
+    )
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                imageUri = uri
+            }
+        }
+    )
+
+
+    if(imageUri != null){
+        AsyncImage(
+            model = imageUri,
+            contentDescription = "BookSharing",
+            modifier = Modifier.size(200.dp),
+        )
+    }
+
+
 
     Column(
         modifier = Modifier
             .padding(3.dp)
             .fillMaxWidth(),
     ) {
+        Box(
+            contentAlignment = Alignment.BottomEnd,
+        ){
+            Image(
+                painter = painter,
+                contentDescription = "",
+                modifier = Modifier.size(200.dp),
+                contentScale = ContentScale.Fit,
+            )
+            IconButton(onClick = {
+                val tmpUri = getImageUri(context = context)
+                uri = tmpUri
+//                launcher.launch(createChooser(tmpUri))
+                cameraLauncher.launch(tmpUri)
+                thumbnail = uri.toString()
+            }) {
+                Icon(Icons.Sharp.CameraEnhance, contentDescription = "")
+            }
+        }
+
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
@@ -124,6 +197,7 @@ fun BookInfoInputScreen(
             publishedDate = publishedDate,
             isbn = isbn,
             ownerId = user.email,
+            thumbnail = thumbnail,
             ownerIcon = user.photoUrl.toString()
         )
 

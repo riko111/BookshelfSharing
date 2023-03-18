@@ -1,27 +1,37 @@
 package com.isoffice.bookshelfsharing.ui
 
-import android.content.Context
+import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.CameraEnhance
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.NavHostController
-import com.google.firebase.auth.FirebaseUser
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
-import com.isoffice.bookshelfsharing.model.OpenBD
-import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
-import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 
 @Composable
 fun BookInfoUpdateScreen(
@@ -41,7 +51,7 @@ fun BookInfoUpdateScreen(
     val ownerId = book.ownerId
     val ownerIcon = book.ownerIcon
 
-    val thumbnail = book.thumbnail
+    val thumbnail = remember {mutableStateOf(book.thumbnail)}
     var title by remember { mutableStateOf(book.title)}
     var furigana by remember { mutableStateOf(book.furigana)}
     var author by remember { mutableStateOf(if(book.author.isNullOrEmpty()){""}else{book.author})}
@@ -51,13 +61,69 @@ fun BookInfoUpdateScreen(
     var publishedDate by remember { mutableStateOf(if(book.publishedDate.isNullOrEmpty()){""}else{book.publishedDate})}
     var isbn by remember { mutableStateOf(if(book.isbn.isNullOrEmpty()){""}else{book.isbn})}
     var showDialog by remember { mutableStateOf(false) }
+    var uri: Uri? = null
+
+    val painter = if(thumbnail.value != null) {
+        rememberAsyncImagePainter(thumbnail.value)
+    } else {
+        painterResource(id = R.drawable.ic_broken_image)
+    }
+
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = {result:  ActivityResult ->
+            if(result.resultCode == Activity.RESULT_OK){
+                imageUri = result.data?.data ?: uri
+            }
+        }
+    )
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                imageUri = uri
+            }
+        }
+    )
+
+
+    if(imageUri != null){
+        AsyncImage(model = imageUri, contentDescription = "BookSharing",
+            modifier = Modifier.size(200.dp),)
+    }
+
 
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
             .padding(3.dp)
             .fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Box(
+            contentAlignment = Alignment.BottomEnd,
+        ){
+            Image(
+                painter = painter,
+                contentDescription = book.title,
+                modifier = Modifier.size(200.dp),
+                contentScale = ContentScale.Fit,
+            )
+            IconButton(onClick = {
+                val tmpUri = getImageUri(context = context)
+                uri = tmpUri
+    //            launcher.launch(createChooser(tmpUri))
+                cameraLauncher.launch(tmpUri)
+                thumbnail.value = uri.toString()
+            }) {
+                Icon(Icons.Sharp.CameraEnhance, contentDescription = "")
+            }
+        }
+
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
@@ -144,7 +210,7 @@ fun BookInfoUpdateScreen(
             isbn = isbn,
             ownerId = ownerId,
             ownerIcon = ownerIcon,
-            thumbnail = thumbnail
+            thumbnail = thumbnail.value
         )
 
         RegisteredAlert(updateBook, { bookViewModel.updateBook(key,it) }, {navController.navigate("main")})
