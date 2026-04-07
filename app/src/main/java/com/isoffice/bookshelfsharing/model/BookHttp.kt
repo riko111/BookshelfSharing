@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object BookHttp{
     private const val OPENBD_JSON_URL = "https://api.openbd.jp/v1/get?isbn=%s"
-    private const val GOOGLEBOOKS_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s"
+    private const val GOOGLE_BOOKS_URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:%s"
 
 
     private val client = OkHttpClient.Builder()
@@ -37,9 +37,9 @@ object BookHttp{
     }
 
 
-    fun searchBookByGoogle(q:String):GoogleBooks? {
+    fun searchBookByGoogle(q: String, googleApiKey: String):GoogleBooks? {
         val request = Request.Builder()
-            .url(String.format(GOOGLEBOOKS_URL, q))
+            .url(String.format("$GOOGLE_BOOKS_URL&key=$googleApiKey", q))
             .build()
         try{
             val response = client.newCall(request).execute()

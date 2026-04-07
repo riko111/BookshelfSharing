@@ -23,14 +23,14 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
 
     fun getBookByKey(key:String){
         val oldState = currentState()
-        val book = bookDao.readBook(key)
-        updateState { oldState.copy(book = book) }
+        val bookState = bookDao.readBook(key)
+        updateState { oldState.copy(book = bookState.value) }
     }
 
     fun getBookByIsbn(isbn:String){
         val oldState = currentState()
-        val book = bookDao.searchIsbnBook(isbn)
-        updateState { oldState.copy(book = book) }
+        val bookMutableState = bookDao.searchIsbnBook(isbn)
+        updateState { oldState.copy(book = bookMutableState.value) }
     }
 
     fun addBook(book: Book){
@@ -45,9 +45,7 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
         val oldState = currentState()
         bookDao.addTagSet(key,tag)
         val book = currentState().book
-        if (book != null) {
-            book.value!!.book.tags?.add(tag)
-        }
+        book?.book?.tags?.add(tag)
         updateState {  oldState.copy(book = book) }
     }
 
@@ -55,9 +53,7 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
         val oldState = currentState()
         bookDao.deleteTag(key,tag)
         val book = currentState().book
-        if (book != null) {
-            book.value!!.book.tags?.remove(tag)
-        }
+        book?.book?.tags?.remove(tag)
         updateState {  oldState.copy(book = book) }
     }
 
@@ -65,7 +61,7 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
 
 data class BookState(
     var flag : Boolean,
-    var book:  MutableState<BookInfo?>?
+    var book:  BookInfo?
 )
 {
     companion object{

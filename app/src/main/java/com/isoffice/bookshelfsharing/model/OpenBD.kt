@@ -21,7 +21,7 @@ data class OpenBD(
 @Parcelize
 data class Onix(
     @SerialName("CollateralDetail")
-    val collateralDetail: CollateralDetail,
+    val collateralDetail: CollateralDetail = CollateralDetail(listOf()),
     @SerialName("DescriptiveDetail")
     val descriptiveDetail: DescriptiveDetail,
 ):Parcelable
@@ -70,7 +70,7 @@ data class CollectionTitleText(
 @Parcelize
 data class TitleDetail(
     @SerialName("TitleElement")
-    val titleElement: TitleElement
+    val titleElement: TitleElement = TitleElement(),
 ):Parcelable
 
 
@@ -78,7 +78,7 @@ data class TitleDetail(
 @Parcelize
 data class TitleElement(
     @SerialName("TitleText")
-    val titleText: TitleText? = null,
+    val titleText: TitleText = TitleText(),
     @SerialName("Subtitle")
     val subtitle : Subtitle? = null,
 ):Parcelable
@@ -99,7 +99,7 @@ data class Subtitle(
 @Parcelize
 data class CollateralDetail(
     @SerialName("TextContent")
-    val textContent: List<TextContent>
+    val textContent: List<TextContent> = listOf()
 ):Parcelable
 
 @Serializable

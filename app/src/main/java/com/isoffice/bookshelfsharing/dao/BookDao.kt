@@ -2,13 +2,9 @@ package com.isoffice.bookshelfsharing.dao
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QueryDocumentSnapshot
-import com.google.firebase.firestore.QuerySnapshot
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
 import timber.log.Timber
@@ -79,7 +75,7 @@ class BookDao(private val db: FirebaseFirestore) {
                 Timber.w("isbn search error.")
             }
             .addOnSuccessListener {
-                book = if(it.documents.size > 0) {
+                book = if(it.documents.isNotEmpty()) {
                     mutableStateOf(BookInfo(it.documents[0].id, setSnapshotToBook(it.documents[0].data!!)))
                 } else {
                     mutableStateOf(null)

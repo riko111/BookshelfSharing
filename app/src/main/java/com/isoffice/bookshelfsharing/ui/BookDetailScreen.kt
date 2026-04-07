@@ -66,7 +66,7 @@ fun BookDetailScreen(
     val book = state.book
 
     Column(
-        if (book?.value != null && book.value!!.book.deleteFlag) {
+        if (book != null && book.book.deleteFlag) {
             Modifier.background(Color.Gray)
         } else {
             Modifier.background(Color.White)
@@ -74,13 +74,13 @@ fun BookDetailScreen(
         .padding(2.dp)
         .fillMaxSize()
     ) {
-        if(book?.value == null){
+        if(book == null){
             Box(modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }else {
-            BookContent(bookDao, book.value!!, onAddTagSet, onDeleteTagSet, mainViewModel, )
+            BookContent(bookDao, book, onAddTagSet, onDeleteTagSet, mainViewModel, )
         }
     }
 }
@@ -136,7 +136,7 @@ private fun BookContent(
             }
         }
 
-        Text(text = book.title, fontWeight = FontWeight.Bold)
+        book.title?.let { Text(text = it, fontWeight = FontWeight.Bold) }
 
         if (book.subtitle != null) Text(text = book.subtitle)
         Spacer(modifier = Modifier.size(5.dp))

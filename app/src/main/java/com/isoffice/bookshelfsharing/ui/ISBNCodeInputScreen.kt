@@ -29,7 +29,7 @@ fun ISBNCodeInputScreen(
             fontSize = 26.sp,
             text = "ISBNコード入力",
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
         )
 
         Spacer(modifier = Modifier.height(10.dp))

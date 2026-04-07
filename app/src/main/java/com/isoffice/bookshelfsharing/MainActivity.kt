@@ -1,25 +1,41 @@
 package com.isoffice.bookshelfsharing
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.core.view.WindowCompat
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCustomException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.security.ProviderInstaller
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
@@ -28,177 +44,358 @@ import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.dao.FireStoreAccess
 import com.isoffice.bookshelfsharing.ui.*
 import com.isoffice.bookshelfsharing.ui.theme.BookshelfSharingTheme
-import com.isoffice.bookshelfsharing.ui.viewModel.*
+import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.BooksViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.MainViewModel
+import com.isoffice.bookshelfsharing.ui.viewModel.ScrollViewModel
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.security.SecureRandom
+import java.util.Base64
 
 class MainActivity : ComponentActivity() {
+
     private val auth: FirebaseAuth = Firebase.auth
-    private lateinit var googleSignInClient: GoogleSignInClient
-    private lateinit var authResultLauncher: ActivityResultLauncher<Intent>
     private val viewModel: MainViewModel by viewModels()
 
-    private var database = FireStoreAccess().db
+    private val database = FireStoreAccess().db
     private val bookDao = BookDao(database)
     private val booksViewModel = BooksViewModel(bookDao)
     private val bookViewModel = BookViewModel(bookDao)
     private val scrollViewModel = ScrollViewModel()
-    private val tagsViewModel = TagsViewModel(bookDao)
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        configureTimber()
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        auth.addAuthStateListener { auth ->
-            viewModel.currentUser = auth.currentUser
-        }
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.gcp_id))
-            .build()
-
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
-        authResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val data: Intent? = result.data
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                firebaseAuthWithGoogle(account.idToken!!)
-            } catch (e: ApiException) {
-                Timber.w(e, "Google sign in failed")
-            }
+        try {
+            ProviderInstaller.installIfNeeded(this)
+            Timber.i("ProviderInstaller installed successfully")
+        } catch (e: Exception) {
+            Timber.e(e, "ProviderInstaller failed to install")
         }
 
+        val webClientId = getString(R.string.gcp_id)
 
+        auth.addAuthStateListener { firebaseAuth ->
+            viewModel.currentUser = firebaseAuth.currentUser
+            Timber.d("AuthState changed. currentUser=${firebaseAuth.currentUser?.email}")
+        }
 
         setContent {
             BookshelfSharingTheme {
-                viewModel.navController = rememberNavController()
-                val navController = viewModel.navController!!
+                val navController = rememberNavController()
+                viewModel.navController = navController
 
-                NavHost(navController = navController, startDestination = "auth" ) {
-                    composable("auth") { //google認証画面
-                        AuthScreen(
-                            currentUser = viewModel.currentUser,
-                            navController =  navController,
-                        ) { signIn() }
-                    }
-                    composable("main"){ //メイン画面（本棚の書籍一覧）
-                        MainScreen(
-                            navController,
-                            user = viewModel.currentUser!!.email.toString(),
-                            bookDao,
-                            booksViewModel,
-                            scrollViewModel
-                        )
-                    }
-                    composable("titleSearch/{title}") { // タイトル検索結果
-                        TitleSearchResultScreen(
-                            navController,
-                            booksViewModel,
-                            scrollViewModel,
-                            it.arguments?.getString("title")!!
-                        )
-                    }
-                    composable("tagSearch/{tag}"){ //tag検索結果
-                        TagSearchResultScreen(
-                            navController,
-                            booksViewModel,
-                            scrollViewModel,
-                            it.arguments?.getString("tag")!!
-                        )
-                    }
-                    composable("barcode"){ //ISBNバーコード読み取り画面
-                        BarcodeScanScreen(navController = navController)
-                    }
-                    composable("book/{barcode}"){ //バーコードで読み取った書籍の表示画面
-                        it.arguments?.getString("barcode")?.let { it1 ->
-                            BookContentScreen(
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (viewModel.currentUser != null) "main" else "auth"
+                    ) {
+                        composable("auth") {
+                            AuthScreen(
+                                currentUser = viewModel.currentUser,
+                                navController = navController,
+                            ) {
+                                SignInButton(
+                                    webClientId = webClientId,
+                                    onSignInSuccess = {
+                                        if (navController.currentDestination?.route != "main") {
+                                            navController.navigate("main") {
+                                                popUpTo("auth") { inclusive = true }
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        composable("main") {
+                            val currentUserEmail = viewModel.currentUser?.email.orEmpty()
+                            MainScreen(
                                 navController,
-                                it1,
-                                viewModel.currentUser!!,
-                                bookViewModel
+                                user = currentUserEmail,
+                                bookDao,
+                                booksViewModel,
+                                scrollViewModel
+                            )
+                        }
+
+                        composable("titleSearch/{title}") {
+                            TitleSearchResultScreen(
+                                navController,
+                                booksViewModel,
+                                scrollViewModel,
+                                it.arguments?.getString("title")!!
+                            )
+                        }
+
+                        composable("tagSearch/{tag}") {
+                            TagSearchResultScreen(
+                                navController,
+                                booksViewModel,
+                                scrollViewModel,
+                                it.arguments?.getString("tag")!!
+                            )
+                        }
+
+                        composable("barcode") {
+                            BarcodeScanScreen(navController = navController)
+                        }
+
+                        composable("book/{barcode}") {
+                            it.arguments?.getString("barcode")?.let { barcode ->
+                                val user = viewModel.currentUser
+                                if (user != null) {
+                                    BookContentScreen(
+                                        navController,
+                                        barcode,
+                                        user,
+                                        bookViewModel
+                                    )
+                                } else {
+                                    navController.navigate("auth") {
+                                        popUpTo("main") { inclusive = true }
+                                    }
+                                }
+                            }
+                        }
+
+                        composable("bookDetail/{key}") {
+                            it.arguments?.getString("key")?.let { key ->
+                                BookDetailScreen(key, bookDao, bookViewModel, viewModel)
+                            }
+                        }
+
+                        composable("bookInfoEdit/{key}") {
+                            it.arguments?.getString("key")?.let { key ->
+                                BookInfoUpdateScreen(
+                                    navController,
+                                    key,
+                                    bookDao,
+                                    bookViewModel,
+                                )
+                            }
+                        }
+
+                        composable("inputISBN") {
+                            ISBNCodeInputScreen { navController.navigate("book/$it") }
+                        }
+
+                        composable("inputBook/{isbn}") {
+                            val user = viewModel.currentUser
+                            if (user != null) {
+                                BookInfoInputScreen(
+                                    navController,
+                                    user,
+                                    it.arguments?.getString("isbn")!!,
+                                    bookViewModel
+                                )
+                            } else {
+                                navController.navigate("auth")
+                            }
+                        }
+
+                        composable("inputBook") {
+                            val user = viewModel.currentUser
+                            if (user != null) {
+                                BookInfoInputScreen(
+                                    navController,
+                                    user,
+                                    "",
+                                    bookViewModel
+                                )
+                            } else {
+                                navController.navigate("auth")
+                            }
+                        }
+
+                        composable("filter") {
+                            FilterScreen(navController, booksViewModel)
+                        }
+
+                        composable("detailedSearch/{str}") {
+                            DetailSearchResultScreen(
+                                navController,
+                                booksViewModel,
+                                scrollViewModel,
+                                it.arguments?.getString("str")!!
                             )
                         }
                     }
-                    composable("bookDetail/{key}"){ //本棚一覧からタップした本の詳細画面
-                        it.arguments?.getString("key")?.let{ key ->
-                            BookDetailScreen(key, bookDao, bookViewModel, viewModel,)
+                }
+
+                BackHandler(enabled = true) {
+                    when {
+                        navController.currentDestination?.route == "main" -> finish()
+                        navController.currentDestination?.route?.startsWith("bookDetail") == true ->
+                            navController.popBackStack()
+                        else -> navController.navigate("main") {
+                            launchSingleTop = true
                         }
-                    }
-                    composable("bookInfoEdit/{key}"){ //本の情報編集画面
-                        it.arguments?.getString("key")?.let{ key ->
-                            BookInfoUpdateScreen(
-                                navController,
-                                key, bookDao, bookViewModel,)
-                        }
-                    }
-                    composable("inputISBN"){    //ISBN手入力画面
-                        ISBNCodeInputScreen { navController.navigate("book/$it") }
-                    }
-                    composable("inputBook/{isbn}"){    // 手動登録(ISBN見つからなかったとき)
-                        BookInfoInputScreen(
-                            navController,viewModel.currentUser!!,
-                            it.arguments?.getString("isbn")!!,
-                            bookViewModel)
-                    }
-                    composable("inputBook"){    // 手動登録
-                        BookInfoInputScreen(
-                            navController,viewModel.currentUser!!,
-                            "",
-                            bookViewModel)
-                    }
-                    composable("filter"){// 詳細検索画面
-                        FilterScreen(navController, booksViewModel)
-                    }
-                    composable("detailedSearch/{str}"){// 詳細検索結果画面
-                        DetailSearchResultScreen(
-                            navController,
-                            booksViewModel,
-                            scrollViewModel,
-                            it.arguments?.getString("str")!!
-                        )
                     }
                 }
             }
-            BackHandler(enabled = true) {
-                if(viewModel.navController!!.currentDestination?.route.toString() == "main") {
-                    this.finish()
-                } else if(viewModel.navController!!.currentDestination?.route.toString().startsWith("bookDetail")){
-                    viewModel.navController!!.popBackStack()
-                } else {
-                    viewModel.navController!!.navigate("main")
+        }
+    }
+
+    @Composable
+    private fun SignInButton(
+        webClientId: String,
+        onSignInSuccess: () -> Unit,
+    ) {
+        val context = LocalContext.current
+        val coroutineScope = rememberCoroutineScope()
+        var signingIn by remember { mutableStateOf(false) }
+
+        val onClick: () -> Unit = click@{
+            if (signingIn) {
+                Timber.d("Sign-in ignored because a request is already running")
+                return@click
+            }
+
+            signingIn = true
+
+            coroutineScope.launch {
+                try {
+                    val idToken = signInAndGetIdToken(
+                        activity = this@MainActivity,
+                        webClientId = webClientId
+                    )
+
+                    if (idToken == null) {
+                        Toast.makeText(context, "Sign in failed!", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
+                    val success = firebaseAuthWithGoogle(idToken)
+                    if (success) {
+                        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+                        onSignInSuccess()
+                    } else {
+                        Toast.makeText(context, "Firebase sign in failed!", Toast.LENGTH_SHORT).show()
+                    }
+                } finally {
+                    signingIn = false
                 }
             }
         }
 
-    }
+        Surface(
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.siwg_button),
+                    contentDescription = "Sign in with Google",
+                    modifier = Modifier.clickable(
+                        enabled = !signingIn,
+                        onClick = onClick
+                    )
+                )
 
-
-
-
-    private fun configureTimber() {
-        if(BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+                if (signingIn) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 
-    private fun signIn() {
-        val signInIntent = googleSignInClient.signInIntent
-        // startActivityForResult(signInIntent, RC_SIGN_IN)
+    private suspend fun signInAndGetIdToken(
+        activity: ComponentActivity,
+        webClientId: String,
+    ): String? {
+        val credentialManager = CredentialManager.create(activity)
 
-        authResultLauncher.launch(signInIntent)
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(webClientId)
+            .setAutoSelectEnabled(false)
+            .setNonce(generateSecureRandomNonce())
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        return try {
+            Timber.d("Starting CredentialManager.getCredential()")
+
+            val result = credentialManager.getCredential(
+                request = request,
+                context = activity,
+            )
+
+            val credential = result.credential
+            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+            val idToken = googleIdTokenCredential.idToken
+
+            Timber.d("CredentialManager success. idToken acquired")
+            idToken
+
+        } catch (e: GetCredentialCancellationException) {
+            Timber.w(e, "Sign-in was cancelled")
+            null
+        } catch (e: NoCredentialException) {
+            Timber.w(e, "No credentials found")
+            null
+        } catch (e: GetCredentialCustomException) {
+            Timber.e(e, "Custom credential error")
+            null
+        } catch (e: GetCredentialException) {
+            Timber.e(e, "CredentialManager failed")
+            null
+        } catch (e: GoogleIdTokenParsingException) {
+            Timber.e(e, "Failed to parse Google ID token")
+            null
+        } catch (e: Exception) {
+            Timber.e(e, "Unexpected error during sign-in")
+            null
+        }
     }
 
-    private fun firebaseAuthWithGoogle(idToken: String) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    Timber.d("signInWithCredential:success")
-                    viewModel.navController!!.navigate("main")
+    private suspend fun firebaseAuthWithGoogle(idToken: String): Boolean {
+        return try {
+            Timber.d("Firebase auth started")
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val result = auth.signInWithCredential(credential).awaitCompat()
+            Timber.d("Firebase auth success: ${result.user?.email}")
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Firebase auth failed")
+            false
+        }
+    }
+}
+
+suspend fun com.google.android.gms.tasks.Task<com.google.firebase.auth.AuthResult>.awaitCompat():
+        com.google.firebase.auth.AuthResult =
+    kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val result = task.result
+                if (result != null) {
+                    cont.resume(result) { cause, _, _ -> }
                 } else {
-                    Timber.w(task.exception, "signInWithCredential:failure")
+                    cont.resumeWith(Result.failure(IllegalStateException("AuthResult is null")))
                 }
+            } else {
+                cont.resumeWith(Result.failure(task.exception ?: Exception("Unknown auth error")))
             }
+        }
     }
 
+fun generateSecureRandomNonce(byteLength: Int = 32): String {
+    val randomBytes = ByteArray(byteLength)
+    SecureRandom.getInstanceStrong().nextBytes(randomBytes)
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
 }

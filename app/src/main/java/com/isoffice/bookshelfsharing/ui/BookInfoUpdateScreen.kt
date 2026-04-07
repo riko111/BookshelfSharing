@@ -31,7 +31,6 @@ import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import timber.log.Timber
 
 @Composable
 fun BookInfoUpdateScreen(
@@ -52,8 +51,8 @@ fun BookInfoUpdateScreen(
     val ownerIcon = book.ownerIcon
 
     val thumbnail = remember {mutableStateOf(book.thumbnail)}
-    var title by remember { mutableStateOf(book.title)}
-    var furigana by remember { mutableStateOf(book.furigana)}
+    var title by remember { mutableStateOf(if(book.title.isNullOrEmpty()){""}else{book.title})}
+    var furigana by remember { mutableStateOf(if(book.furigana.isNullOrEmpty()){""}else{book.furigana})}
     var author by remember { mutableStateOf(if(book.author.isNullOrEmpty()){""}else{book.author})}
     var subtitle by remember { mutableStateOf(if(book.subtitle.isNullOrEmpty()){""}else{book.subtitle}) }
     var description by remember { mutableStateOf(if(book.description.isNullOrEmpty()){""}else{book.description})}
@@ -100,7 +99,7 @@ fun BookInfoUpdateScreen(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
             .padding(3.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth().safeDrawingPadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -124,52 +123,56 @@ fun BookInfoUpdateScreen(
             }
         }
 
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(3.dp),
-            label = {Text("タイトル*")},
-            value = title,
-            onValueChange = {title = it},
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        title?.let { it1 ->
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth().safeDrawingPadding()
+                    .padding(3.dp),
+                label = {Text("タイトル*")},
+                value = it1,
+                onValueChange = {title = it},
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+        }
 
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(3.dp),
-            label = {Text("フリガナ")},
-            value = furigana, onValueChange = {furigana = it},
-            placeholder = { Text(text = "フリガナ") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        furigana?.let { it1 ->
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth().safeDrawingPadding()
+                    .padding(3.dp),
+                label = {Text("フリガナ")},
+                value = it1, onValueChange = {furigana = it},
+                placeholder = { Text(text = "フリガナ") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
+        }
 
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("サブタイトル")},
             value = subtitle, onValueChange = {subtitle = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("著者*")},
             value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("情報")},
             value = description, onValueChange = {description = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().safeDrawingPadding()
                     .padding(3.dp),
         label = {Text("出版社")},
         value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("出版日")},
             value = publishedDate,
@@ -178,14 +181,14 @@ fun BookInfoUpdateScreen(
         OutlinedTextField(
             label = {Text("ISBN")},
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             value = isbn, onValueChange = {isbn = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
 
         OutlinedButton(
             onClick = { showDialog = true  },
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp)
         ) {
             Text(text = "更新", Modifier)

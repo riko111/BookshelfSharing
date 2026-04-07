@@ -32,7 +32,7 @@ fun FilterScreen(
         Column(
             Modifier
                 .padding(padding)
-                .fillMaxWidth(),
+                .fillMaxWidth().safeDrawingPadding(),
         ) {
             Main(
                 tagSet,
@@ -67,7 +67,7 @@ private fun Main(
     TextField(
         label = { Text(text = "タイトル") },
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().safeDrawingPadding()
             .padding(3.dp),
         value = title,
         onValueChange = { title = it },
@@ -77,7 +77,7 @@ private fun Main(
     TextField(
         label = { Text(text = "著者") },
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().safeDrawingPadding()
             .padding(3.dp),
         value = author,
         onValueChange = { author = it },
@@ -87,7 +87,7 @@ private fun Main(
     TextField(
         label = { Text(text = "出版社") },
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().safeDrawingPadding()
             .padding(3.dp),
         value = publisher,
         onValueChange = { publisher = it },
@@ -139,7 +139,7 @@ private fun Main(
             }
         },
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth().safeDrawingPadding()
             .padding(3.dp)
     ) {
         Text(text = "検索", Modifier)

@@ -17,12 +17,10 @@ import com.google.firebase.auth.FirebaseUser
  認証できてたらメイン画面へ
  */
 @Composable
-fun AuthScreen(currentUser: FirebaseUser?, navController:NavHostController, onSignIn: () -> Unit) {
+fun AuthScreen(currentUser: FirebaseUser?, navController:NavHostController, onSignIn: @Composable () -> Unit) {
     Column(modifier = Modifier.padding(16.dp)) {
         if (currentUser == null) {
-            Button(onClick = { onSignIn() }) {
-                Text(text = "Sign in with Google")
-            }
+            onSignIn()
         } else {
             LaunchedEffect(Unit) {
                 navController.navigate("main")

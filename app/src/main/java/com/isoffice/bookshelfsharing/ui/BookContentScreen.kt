@@ -1,11 +1,12 @@
 package com.isoffice.bookshelfsharing.ui
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,120 +57,129 @@ fun BookContentScreen(
 @Composable
 fun BookContentScreen(
     barcode: String,
-    user:FirebaseUser,
+    user: FirebaseUser,
     state: BookState,
-    onSearchIsbn:(isbn:String) ->Unit,
-    onNavigateToInputBook:(isbn:String) -> Unit,
-    onRegisterBook:(book:Book) ->Unit,
-    onNavigateToMain:() -> Unit,
-    onNavigateToDetail:(str:String)->Unit,
-){
-    onSearchIsbn(barcode)
-    val bookInfo = state.book
+    onSearchIsbn: (isbn: String) -> Unit,
+    onNavigateToInputBook: (isbn: String) -> Unit,
+    onRegisterBook: (book: Book) -> Unit,
+    onNavigateToMain: () -> Unit,
+    onNavigateToDetail: (str: String) -> Unit,
+) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(barcode) {
+        onSearchIsbn(barcode)
+    }
+
+    val bookInfo = state.book
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxSize(),
+            .fillMaxWidth().safeDrawingPadding()
+            .fillMaxSize().statusBarsPadding(),
     ) {
-        if(bookInfo?.value != null) {    // 本棚にあるときは本棚から情報を持ってくる
-            val book = bookInfo.value!!.book
-            val painter = if(book.thumbnail != null && book.thumbnail != "") {
+        if (bookInfo != null) {
+            // ... (Keep existing code for books already in the bookshelf)
+            val book = bookInfo.book
+            val painter = if(!book.thumbnail.isNullOrEmpty()) {
                 rememberAsyncImagePainter(book.thumbnail)
             } else {
                 painterResource(id = R.drawable.ic_broken_image)
             }
-
-            BookContent(
-                painter,
-                book.title,
-                book.subtitle,
-                book.author,
-                book.publisher,
-                book.publishedDate,
-            )
-            OutlinedButton(
-                onClick = {onNavigateToDetail(bookInfo.value!!.key)},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(3.dp)) {
-                Text(text = "本棚にあります", Modifier)
+            BookContent(painter, book.title, book.subtitle, book.author, book.publisher, book.publishedDate)
+            OutlinedButton(onClick = {onNavigateToDetail(bookInfo.key)}) {
+                Text(text = "本棚にあります")
             }
-        } else {    // 本棚にないときはOpenBDを検索
-            var openBD: OpenBD? = null
-            runBlocking {
-                val job = launch {
-                    openBD = withContext(Dispatchers.IO) {
-                        BookHttp.searchBook(barcode)
+        } else {
+            // --- NEW LOGIC: Fetch both and merge ---
+            var combinedBook by remember { mutableStateOf<Book?>(null) }
+            var isSearching by remember { mutableStateOf(true) }
+            val googleApiKey = context.getString(R.string.google_api_key)
+
+
+            LaunchedEffect(barcode) {
+                withContext(Dispatchers.IO) {
+                    val openBD = async { BookHttp.searchBook(barcode) }
+                    val googleBooks = async { BookHttp.searchBookByGoogle(barcode, googleApiKey) }
+
+                    val resOpenBD = openBD.await()
+                    val resGoogle = googleBooks.await()
+
+                    if (resOpenBD != null || (resGoogle != null && resGoogle.items != null)) {
+                        // Merge the data
+                        combinedBook = mergeBookData(resOpenBD, resGoogle, user, barcode)
                     }
                 }
-                job.join()
+                isSearching = false
             }
-            if (openBD == null) { // それでもないときはGoogleBooksAPIを検索
 
-                var googleBooks: GoogleBooks? = null
-                runBlocking {
-                    val job = launch {
-                        googleBooks = withContext(Dispatchers.IO) {
-                            BookHttp.searchBookByGoogle(barcode)
-                        }
-                    }
-                    job.join()
-                }
-
-                if(googleBooks == null || googleBooks!!.items == null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "「$barcode」に該当する書籍がありません")
-                        OutlinedButton(
-                            onClick = { onNavigateToInputBook(barcode) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp)
-                        ) {
-                            Text(text = "手動本棚登録")
-                        }
-                    }
-                }else {
-                    var showDialog by remember { mutableStateOf(false) }
-                    val book = GoogleBooksMapper.GooglsBookToBook(googleBooks!!,user)
-                    BookContent(book)
-                    OutlinedButton(
-                        onClick = { showDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(3.dp)
-                    ) {
-                        Text(text = "本棚登録", Modifier)
-                    }
-                    if(showDialog){
-                        RegisteredAlert(book, onRegisterBook, onNavigateToMain,context)
+            if (isSearching) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else if (combinedBook == null) {
+                // No results found in either API
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "「$barcode」に該当する書籍がありません")
+                    OutlinedButton(onClick = { onNavigateToInputBook(barcode) }) {
+                        Text(text = "手動本棚登録")
                     }
                 }
             } else {
-                val book = BookOpenBDMapper.openBDToBook(openBD!!, user)
+                // Display combined data
                 var showDialog by remember { mutableStateOf(false) }
-                BookContent(book)
-                OutlinedButton(
-                    onClick = { showDialog = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(3.dp)
-                ) {
-                    Text(text = "本棚登録", Modifier)
+                BookContent(combinedBook!!)
+                OutlinedButton(onClick = { showDialog = true }) {
+                    Text(text = "本棚登録")
                 }
-                if(showDialog){
-                    RegisteredAlert(book, onRegisterBook, onNavigateToMain,context)
+                if (showDialog) {
+                    RegisteredAlert(
+                        combinedBook!!,
+                        onRegisterBook = { book ->
+                            coroutineScope.launch {
+                                onRegisterBook(book)
+                                onNavigateToMain()
+                                Toast.makeText(context, "${book.title}を登録しました", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        onDismiss = { showDialog = false }
+                    )
                 }
             }
         }
     }
+}
+private fun mergeBookData(
+    openBD: OpenBD?,
+    googleBooks: GoogleBooks?,
+    user: FirebaseUser,
+    isbn: String
+): Book {
+    // Start with base conversion from whichever is available
+    val baseBook = if (openBD != null) {
+        BookOpenBDMapper.openBDToBook(openBD, user)
+    } else {
+        GoogleBooksMapper.GooglsBookToBook(googleBooks!!, user)
+    }
+
+    // If both exist, supplement the baseBook with Google data
+    if (openBD != null && googleBooks?.items != null) {
+        val gBook = GoogleBooksMapper.GooglsBookToBook(googleBooks, user)
+
+        return baseBook.copy(
+            // Use Google's thumbnail if openBD's is missing
+            thumbnail = if (baseBook.thumbnail.isNullOrEmpty()) gBook.thumbnail else baseBook.thumbnail,
+            // Use Google's subtitle if openBD's is missing
+            subtitle = if (baseBook.subtitle.isNullOrEmpty()) gBook.subtitle else baseBook.subtitle,
+            // Ensure description is captured (if your Book model has it)
+            // description = gBook.description ?: baseBook.description
+        )
+    }
+
+    return baseBook
 }
 @Composable
 private fun BookContent(
@@ -192,17 +202,17 @@ private fun BookContent(
 }
 @Composable
 private fun BookContent(
-    painter:Painter,
-    title: String ,
+    painter: Painter,
+    title: String?,
     subtitle: String?,
     author: String?,
-    publisher:String?,
+    publisher: String?,
     publishedDate: String?,
 ) {
 
     Column (modifier = Modifier
         .padding(vertical = 2.dp)
-        .fillMaxWidth()
+        .fillMaxWidth().safeDrawingPadding()
         .width(IntrinsicSize.Max)
         .border(1.dp, Color.LightGray),
         verticalArrangement = Arrangement.Center,
@@ -225,7 +235,9 @@ private fun BookContent(
                     .padding(vertical = 2.dp)
                     .weight(fill = true, weight = 1f)
             ) {
-                Text(text = title, fontWeight = FontWeight.Bold)
+                if (title != null) {
+                    Text(text = title, fontWeight = FontWeight.Bold)
+                }
                 if (subtitle != null) Text(text = subtitle)
                 Spacer(modifier = Modifier.size(5.dp))
                 if (author != null) Text(text = author)
@@ -237,51 +249,33 @@ private fun BookContent(
 }
 
 @Composable
-private fun RegisteredAlert(book:Book,
-                            onRegisterBook:(book:Book) ->Unit,
-                            onNavigateToMain:() -> Unit,
-                            context: Context
-){
-    val openDialog = remember{ mutableStateOf(true) }
-
-    if(openDialog.value){
-        AlertDialog(
-            onDismissRequest = { openDialog.value = false },
-            title = {
-                val title = book.title
-                Text(text = "「${title}」を本棚に入れますか？")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    openDialog.value = false
-                    registerBook(book, onRegisterBook, onNavigateToMain,context)
-                }) {
-                    Text("はい")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    openDialog.value = false
-                }) {
-                    Text("いいえ")
-                }
+private fun RegisteredAlert(
+    book: Book,
+    onRegisterBook: (book: Book) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            val title = book.title
+            Text(text = "「${title}」を本棚に入れますか？")
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onRegisterBook(book)
+                onDismiss()
+            }) {
+                Text("はい")
             }
-        )
-    }
-}
-
-
-private fun registerBook(book:Book,
-    onRegisterBook:(book:Book) ->Unit,
-    onNavigateToMain:() -> Unit,
-    context: Context) {
-    runBlocking {
-        val job2 = launch {
-            onRegisterBook(book)
-            onNavigateToMain()
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("いいえ")
+            }
         }
-        job2.join()
-        Toast.makeText(context,"${book.title}を登録しました",Toast.LENGTH_LONG).show()
-    }
+    )
 }
+
+
+// Removed registerBook with runBlocking as it's replaced by coroutineScope.launch above
 

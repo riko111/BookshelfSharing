@@ -3,6 +3,7 @@ package com.isoffice.bookshelfsharing.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -58,7 +59,7 @@ private fun TagSearchResultScreen(
         Column(
             Modifier
                 .padding(padding)
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
         ) {
             if (bookList.isEmpty()) {
                 CircleProgressIndicator()

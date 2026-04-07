@@ -81,7 +81,7 @@ fun BarcodeScanScreen(navController: NavHostController) {
             modifier = Modifier.padding(5.dp)
         ) {
             Text(
-                modifier= Modifier.fillMaxWidth(),
+                modifier= Modifier.fillMaxWidth().navigationBarsPadding(),
                 text = barcode,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,

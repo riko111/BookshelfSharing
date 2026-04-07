@@ -1,7 +1,6 @@
 package com.isoffice.bookshelfsharing.ui
 
 import android.app.Activity
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
@@ -20,14 +19,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.model.Book
-import com.isoffice.bookshelfsharing.model.OpenBD
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 
 @Composable
@@ -90,7 +87,7 @@ fun BookInfoInputScreen(
     Column(
         modifier = Modifier
             .padding(3.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth().safeDrawingPadding(),
     ) {
         Box(
             contentAlignment = Alignment.BottomEnd,
@@ -114,7 +111,7 @@ fun BookInfoInputScreen(
 
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("タイトル*")},
             value = title,
@@ -123,7 +120,7 @@ fun BookInfoInputScreen(
 
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("ふりがな")},
             value = furigana, onValueChange = {furigana = it},
@@ -133,31 +130,31 @@ fun BookInfoInputScreen(
 
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("サブタイトル")},
             value = subtitle, onValueChange = {subtitle = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("著者*")},
             value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("情報")},
             value = description, onValueChange = {description = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth().safeDrawingPadding()
                     .padding(3.dp),
         label = {Text("出版社")},
         value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             label = {Text("出版日")},
             value = publishedDate,
@@ -166,14 +163,14 @@ fun BookInfoInputScreen(
         OutlinedTextField(
             label = {Text("ISBN")},
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
             value = isbn, onValueChange = {isbn = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
 
         OutlinedButton(
             onClick = { showDialog = true  },
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp)
         ) {
             Text(text = "本棚登録", Modifier)

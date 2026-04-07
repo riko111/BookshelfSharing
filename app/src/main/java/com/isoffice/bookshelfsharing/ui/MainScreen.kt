@@ -59,6 +59,7 @@ import timber.log.Timber
 import java.security.Permission
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MainScreen(
     navController:NavHostController,
@@ -110,6 +111,7 @@ fun MainScreen(
 
     Scaffold(
         scaffoldState = scaffoldState,
+        modifier = Modifier.fillMaxWidth().systemBarsPadding(),
         drawerContent = {
             Column {
                 Box(modifier = Modifier
@@ -140,10 +142,10 @@ fun MainScreen(
             TabRow(
                 selectedTabIndex = selectedTabIndex.ordinal,
             ) {
-                Books.values().map { it.title }.forEachIndexed{index, value ->
+                Books.entries.map { it.title }.forEachIndexed{ index, value ->
                     Tab(text={Text(text = value)},
                         selected = selectedTabIndex.ordinal == index,
-                        onClick = { selectedTabIndex = Books.values()[index] })
+                        onClick = { selectedTabIndex = Books.entries.toTypedArray()[index] })
                 }
             }
             if(booksViewModel.booksState.bookList.isEmpty()){
@@ -382,7 +384,7 @@ fun BookList(
         Column(modifier = Modifier
             .padding(vertical = 2.dp)
             .width(textWidth)) {
-            Text(text = book.title, fontWeight = FontWeight.Bold)
+            book.title?.let { Text(text = it, fontWeight = FontWeight.Bold) }
             Text(text = book.author.toString())
             Text(text = "出版社：${book.publisher.toString()}")
             Text(text = "出版日：${book.publishedDate.toString()}")
