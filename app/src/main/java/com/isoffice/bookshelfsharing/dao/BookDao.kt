@@ -1,8 +1,6 @@
 package com.isoffice.bookshelfsharing.dao
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -14,7 +12,6 @@ import timber.log.Timber
 class BookDao(private val db: FirebaseFirestore) {
     private var bookList = mutableStateListOf<BookInfo>()
     private var listenerRegistration: ListenerRegistration? = null
-    var book = mutableStateOf<BookInfo?>(null)
     var set = mutableSetOf<String>()
     fun writeNewBook(book:Book) {
         db.collection("books")
@@ -52,18 +49,24 @@ class BookDao(private val db: FirebaseFirestore) {
         return bookList
     }
 
-    fun readBook(key:String) : MutableState<BookInfo?>{
+    fun readBook(key:String, onResult: (BookInfo?) -> Unit){
         db.collection("books")
             .document(key)
             .get()
             .addOnSuccessListener {
-                book = mutableStateOf(BookInfo(it.id, setSnapshotToBook(it.data!!)))
-                return@addOnSuccessListener
+                val data = it.data
+                onResult(
+                    if (data != null) {
+                        BookInfo(it.id, setSnapshotToBook(data))
+                    } else {
+                        null
+                    }
+                )
             }
             .addOnFailureListener {
                 Timber.w("Error getting books by isbn: $it")
+                onResult(null)
             }
-        return book
     }
 
     fun deleteBook(key:String) {
@@ -72,22 +75,22 @@ class BookDao(private val db: FirebaseFirestore) {
             .update("deleteFlag", true)
     }
 
-    fun searchIsbnBook(isbn:String):MutableState<BookInfo?>{
+    fun searchIsbnBook(isbn:String, onResult: (BookInfo?) -> Unit){
         db.collection("books")
             .whereEqualTo("isbn", isbn)
             .get()
             .addOnFailureListener {
                 Timber.w("isbn search error.")
+                onResult(null)
             }
             .addOnSuccessListener {
-                book = if(it.documents.isNotEmpty()) {
-                    mutableStateOf(BookInfo(it.documents[0].id, setSnapshotToBook(it.documents[0].data!!)))
+                val bookInfo = if(it.documents.isNotEmpty()) {
+                    BookInfo(it.documents[0].id, setSnapshotToBook(it.documents[0].data!!))
                 } else {
-                    mutableStateOf(null)
+                    null
                 }
+                onResult(bookInfo)
             }
-
-        return book
     }
 
     fun updateBook(key: String, book: Book){
