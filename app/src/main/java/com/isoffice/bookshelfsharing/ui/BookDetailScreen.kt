@@ -62,7 +62,9 @@ fun BookDetailScreen(
     onDeleteTagSet:(tag:String) ->Unit,
     mainViewModel: MainViewModel,
 ){
-    onSearchKey(key)
+    LaunchedEffect(key) {
+        onSearchKey(key)
+    }
     val book = state.book
 
     Column(
@@ -353,4 +355,3 @@ private fun DeleteTagDialog(
         )
     }
 }
-

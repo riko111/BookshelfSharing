@@ -1,16 +1,11 @@
 package com.isoffice.bookshelfsharing.ui.viewModel
 
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import okhttp3.internal.wait
 
 class BookViewModel(private val bookDao: BookDao): ViewModel() {
     private val booksStateFlow = MutableStateFlow(BookState.init)
@@ -22,15 +17,17 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
     }
 
     fun getBookByKey(key:String){
-        val oldState = currentState()
-        val bookState = bookDao.readBook(key)
-        updateState { oldState.copy(book = bookState.value) }
+        updateState { currentState().copy(book = null) }
+        bookDao.readBook(key) { bookInfo ->
+            updateState { currentState().copy(book = bookInfo) }
+        }
     }
 
     fun getBookByIsbn(isbn:String){
-        val oldState = currentState()
-        val bookMutableState = bookDao.searchIsbnBook(isbn)
-        updateState { oldState.copy(book = bookMutableState.value) }
+        updateState { currentState().copy(book = null) }
+        bookDao.searchIsbnBook(isbn) { bookInfo ->
+            updateState { currentState().copy(book = bookInfo) }
+        }
     }
 
     fun addBook(book: Book){
