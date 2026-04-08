@@ -28,7 +28,7 @@ class BookDao(private val db: FirebaseFirestore) {
     }
 
 
-    fun readAllBooks():MutableList<BookInfo> {
+    fun readAllBooks(onUpdated: ((List<BookInfo>) -> Unit)? = null):MutableList<BookInfo> {
         if (listenerRegistration == null) {
             listenerRegistration = db.collection("books")
                 .orderBy("furigana")
@@ -44,9 +44,11 @@ class BookDao(private val db: FirebaseFirestore) {
                             val book = setSnapshotToBook(item)
                             bookList.add(BookInfo(doc.id, book))
                         }
+                        onUpdated?.invoke(bookList)
                     }
                 }
         }
+        onUpdated?.invoke(bookList)
         return bookList
     }
 
@@ -156,4 +158,3 @@ class BookDao(private val db: FirebaseFirestore) {
         return item
     }
 }
-

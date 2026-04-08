@@ -18,12 +18,9 @@ class BooksViewModel(private val bookDao: BookDao) : ViewModel() {
         private set
 
     fun getAllBooksList() {
-        val list = bookDao.readAllBooks()
-        val tagSet = getAllTags(list)
-        booksState = BooksListState(
-            bookList = list.toList(),
-            tagSet = tagSet.toSet()
-        )
+        bookDao.readAllBooks { updatedList ->
+            updateBooksState(updatedList)
+        }
     }
 
     fun deleteBook(key: String) {
@@ -41,5 +38,14 @@ class BooksViewModel(private val bookDao: BookDao) : ViewModel() {
             }
         }
         return tagSet
+    }
+
+    private fun updateBooksState(list: List<BookInfo>) {
+        val mutableList = list.toMutableList()
+        val tagSet = getAllTags(mutableList)
+        booksState = BooksListState(
+            bookList = mutableList,
+            tagSet = tagSet
+        )
     }
 }
