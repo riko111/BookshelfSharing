@@ -148,20 +148,16 @@ fun MainScreen(
                         onClick = { selectedTabIndex = Books.entries.toTypedArray()[index] })
                 }
             }
-            if(booksViewModel.booksState.bookList.isEmpty()){
-                CircleProgressIndicator()
-            } else {
-                MainContent(
-                    user,
-                    selectedTabIndex,
-                    checkedState,
-                    booksViewModel.booksState.bookList,
-                    onNavigateToDetail,
-                    onClickDelete,
-                    setScrollIndex,
-                    index
-                )
-            }
+            MainContent(
+                user,
+                selectedTabIndex,
+                checkedState,
+                booksViewModel.booksState.bookList,
+                onNavigateToDetail,
+                onClickDelete,
+                setScrollIndex,
+                index
+            )
         }
     }
 }
@@ -310,6 +306,11 @@ fun MainContent(
     val listScrollState = rememberLazyListState(index)
 
     BoxWithConstraints {
+        if (bookList.isEmpty()) {
+            EmptyBooksState()
+            return@BoxWithConstraints
+        }
+
         val screenWidth = with(LocalDensity.current) {constraints.maxWidth.toDp()}
         val textWidth = (screenWidth - 150.dp )
         LazyColumn(
@@ -337,6 +338,16 @@ fun MainContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyBooksState() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "表示できる本がありません")
     }
 }
 
