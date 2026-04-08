@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class BookViewModel(private val bookDao: BookDao): ViewModel() {
     private val booksStateFlow = MutableStateFlow(BookState.init)
     val state = booksStateFlow.asStateFlow()
+    private var latestRequestToken = 0
 
     private fun currentState() = booksStateFlow.value
     private fun updateState(newState: () -> BookState){
@@ -17,18 +18,31 @@ class BookViewModel(private val bookDao: BookDao): ViewModel() {
     }
 
     fun getBookByKey(key:String){
+        val requestToken = nextRequestToken()
         updateState { currentState().copy(book = null) }
         bookDao.readBook(key) { bookInfo ->
-            updateState { currentState().copy(book = bookInfo) }
+            if (isLatestRequest(requestToken)) {
+                updateState { currentState().copy(book = bookInfo) }
+            }
         }
     }
 
     fun getBookByIsbn(isbn:String){
+        val requestToken = nextRequestToken()
         updateState { currentState().copy(book = null) }
         bookDao.searchIsbnBook(isbn) { bookInfo ->
-            updateState { currentState().copy(book = bookInfo) }
+            if (isLatestRequest(requestToken)) {
+                updateState { currentState().copy(book = bookInfo) }
+            }
         }
     }
+
+    private fun nextRequestToken(): Int {
+        latestRequestToken += 1
+        return latestRequestToken
+    }
+
+    private fun isLatestRequest(requestToken: Int): Boolean = requestToken == latestRequestToken
 
     fun addBook(book: Book){
         bookDao.writeNewBook(book)
