@@ -57,7 +57,7 @@ private fun TopBar(onNavigateToMain:()->Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Main(
-    tagSet:MutableSet<String>,
+    tagSet:Set<String>,
     doSearch:(str:String)->Unit,
 ) {
     var title by remember { mutableStateOf("") }

@@ -121,7 +121,6 @@ class MainActivity : ComponentActivity() {
                             MainScreen(
                                 navController,
                                 user = currentUserEmail,
-                                bookDao,
                                 booksViewModel,
                                 scrollViewModel
                             )
@@ -170,6 +169,7 @@ class MainActivity : ComponentActivity() {
                         composable("bookDetail/{key}") {
                             it.arguments?.getString("key")?.let { key ->
                                 BookDetailScreen(key, bookDao, bookViewModel, viewModel)
+                                Timber.d("DESTINATION key=$key")
                             }
                         }
 

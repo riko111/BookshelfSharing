@@ -64,14 +64,13 @@ import java.security.Permission
 fun MainScreen(
     navController:NavHostController,
     user: String,
-    bookDao: BookDao,
     booksViewModel: BooksViewModel,
     scrollViewModel: ScrollViewModel
 ) {
     RequestPermission()
     MainScreen(
         user,
-        bookDao,
+        booksViewModel,
         { navController.navigate("barcode") },
         { navController.navigate("bookDetail/$it")},
         { navController.navigate("titleSearch/$it")},
@@ -88,7 +87,7 @@ fun MainScreen(
 @Composable
 fun MainScreen(
     user: String,
-    bookDao: BookDao,
+    booksViewModel: BooksViewModel,
     onNavigateToBarcode: () -> Unit,
     onNavigateToDetail:(str:String)->Unit,
     onSearchTitle:(title:String) -> Unit,
@@ -106,8 +105,9 @@ fun MainScreen(
     var selectedTabIndex by rememberSaveable{mutableStateOf(Books.MINE)}
     val checkedState = remember { mutableStateOf(false) }
 
-    val booksViewModel = BooksViewModel(bookDao)
-    booksViewModel.getAllBooksList()
+    LaunchedEffect(Unit) {
+        booksViewModel.getAllBooksList()
+    }
 
     Scaffold(
         scaffoldState = scaffoldState,
@@ -155,7 +155,7 @@ fun MainScreen(
                     user,
                     selectedTabIndex,
                     checkedState,
-                    booksViewModel,
+                    booksViewModel.booksState.bookList,
                     onNavigateToDetail,
                     onClickDelete,
                     setScrollIndex,
@@ -279,16 +279,16 @@ private fun MainContent(
     user: String,
     selectedTabIndex:Books,
     checkedState: MutableState<Boolean>,
-    booksViewModel: BooksViewModel,
+    bookList: List<BookInfo>,
     onNavigateToDetail:(key:String)->Unit,
     onClickDelete:(key:String)->Unit,
     setScrollIndex:(index:Int)->Unit,
     index:Int
 ) {
     val list = if(selectedTabIndex == Books.MINE) {
-        getUserBooksList(user, booksViewModel.booksState.bookList,checkedState.value)
+        getUserBooksList(user, bookList,checkedState.value).toList()
     } else {
-        getOtherBooksList(user,booksViewModel.booksState.bookList,checkedState.value)
+        getOtherBooksList(user,bookList,checkedState.value).toList()
     }
 
     MainContent(
@@ -301,7 +301,7 @@ private fun MainContent(
 }
 @Composable
 fun MainContent(
-    bookList: MutableList<BookInfo>,
+    bookList: List<BookInfo>,
     onNavigateToDetail:(key:String)->Unit,
     onClickDelete:(key:String)->Unit,
     setScrollIndex:(index:Int)->Unit,
@@ -315,16 +315,25 @@ fun MainContent(
         LazyColumn(
             state = listScrollState
         ) {
-            items(bookList){
-
+            items(
+                items = bookList,
+                key = { bookInfo -> bookInfo.key }
+            ) { bookInfo ->
                 Column(
-                    modifier = if(it.book.deleteFlag){
+                    modifier = if (bookInfo.book.deleteFlag) {
                         Modifier.background(Color.Gray)
                     } else {
                         Modifier.background(Color.White)
                     }
                 ) {
-                   BookList( it, textWidth,onNavigateToDetail,onClickDelete,setScrollIndex,listScrollState)
+                    BookList(
+                        bookInfo = bookInfo,
+                        textWidth = textWidth,
+                        onNavigateToDetail = onNavigateToDetail,
+                        onClickDelete = onClickDelete,
+                        setScrollIndex = setScrollIndex,
+                        listScrollState = listScrollState
+                    )
                 }
             }
         }
@@ -356,7 +365,6 @@ fun BookList(
     setScrollIndex:(index:Int)->Unit,
     listScrollState: LazyListState
 ){
-    val id = bookInfo.key
     val book = bookInfo.book
     val deleteFlag = book.deleteFlag
     val painter = if(book.thumbnail != null && book.thumbnail != "") {
@@ -370,10 +378,12 @@ fun BookList(
         modifier = Modifier
             .fillMaxWidth()
             .border(width = 1.dp, color = Color.DarkGray, shape = RectangleShape)
-            .clickable(onClick = {
+            .clickable{
+                val clickedKey = bookInfo.key
+                Timber.d("CLICK title=${bookInfo.book.title} key=$clickedKey index=${listScrollState.firstVisibleItemIndex}")
                 setScrollIndex(listScrollState.firstVisibleItemIndex)
-                onNavigateToDetail(id)
-            })
+                onNavigateToDetail(clickedKey)
+            }
     ){
         Image(
             painter = painter,

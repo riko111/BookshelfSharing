@@ -6,7 +6,7 @@ import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.BooksListState
 
 
-fun getUserBooksList(user:String, allList:MutableList<BookInfo>,deleteFlag:Boolean):MutableList<BookInfo>{
+fun getUserBooksList(user:String, allList:List<BookInfo>,deleteFlag:Boolean):MutableList<BookInfo>{
     val list = mutableStateListOf<BookInfo>()
     allList.forEach {
         if(it.book.ownerId == user){
@@ -16,7 +16,7 @@ fun getUserBooksList(user:String, allList:MutableList<BookInfo>,deleteFlag:Boole
     }
     return list
 }
-fun getOtherBooksList(user:String, allList:MutableList<BookInfo>,deleteFlag:Boolean):MutableList<BookInfo>{
+fun getOtherBooksList(user:String, allList:List<BookInfo>,deleteFlag:Boolean):MutableList<BookInfo>{
     val list = mutableStateListOf<BookInfo>()
     allList.forEach {
         if(it.book.ownerId != user){
@@ -27,7 +27,7 @@ fun getOtherBooksList(user:String, allList:MutableList<BookInfo>,deleteFlag:Bool
     return list
 }
 
-fun getBooksListByTitle(key:String, allList:MutableList<BookInfo>):MutableList<BookInfo> {
+fun getBooksListByTitle(key:String, allList:List<BookInfo>):MutableList<BookInfo> {
     val list = mutableStateListOf<BookInfo>()
     allList.forEach {
         if(it.book.title!!.contains(key)){
@@ -37,7 +37,7 @@ fun getBooksListByTitle(key:String, allList:MutableList<BookInfo>):MutableList<B
     return list
 }
 
-fun getBooksListByTag(key:String, allList:MutableList<BookInfo>):MutableList<BookInfo> {
+fun getBooksListByTag(key:String, allList:List<BookInfo>):List<BookInfo> {
     val list = mutableStateListOf<BookInfo>()
     allList.forEach {
         if(it.book.tags?.contains(key) == true){
@@ -47,7 +47,7 @@ fun getBooksListByTag(key:String, allList:MutableList<BookInfo>):MutableList<Boo
     return list
 }
 
-fun getBooksListByDetailSearch(map:MutableMap<String, String>, allList: MutableList<BookInfo>):MutableList<BookInfo> {
+fun getBooksListByDetailSearch(map:MutableMap<String, String>, allList: List<BookInfo>):MutableList<BookInfo> {
     val list = mutableStateListOf<BookInfo>()
     allList.forEach{
         val book = it.book

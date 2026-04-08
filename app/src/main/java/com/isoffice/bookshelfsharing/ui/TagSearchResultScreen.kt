@@ -40,7 +40,7 @@ fun TagSearchResultScreen(
 }
 @Composable
 private fun TagSearchResultScreen(
-    bookList: MutableList<BookInfo>,
+    bookList: List<BookInfo>,
     tag: String,
     onNavigateToMain:()->Unit,
     onNavigateToDetail:(str:String)->Unit,

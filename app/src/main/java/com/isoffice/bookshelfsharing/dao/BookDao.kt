@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
 import timber.log.Timber
@@ -12,6 +13,7 @@ import timber.log.Timber
 
 class BookDao(private val db: FirebaseFirestore) {
     private var bookList = mutableStateListOf<BookInfo>()
+    private var listenerRegistration: ListenerRegistration? = null
     var book = mutableStateOf<BookInfo?>(null)
     var set = mutableSetOf<String>()
     fun writeNewBook(book:Book) {
@@ -27,22 +29,24 @@ class BookDao(private val db: FirebaseFirestore) {
 
 
     fun readAllBooks():MutableList<BookInfo> {
-        db.collection("books")
-            //.whereEqualTo("deleteFlag", false)
-            .orderBy("furigana")
-            .get()
-            .addOnFailureListener {
-                Timber.w("Error getting books.: $it")
-            }
-            .addOnSuccessListener {
-                bookList.removeAll(bookList)
-                for(doc in it){
-                    val item = doc.data
-                    val book = setSnapshotToBook(item)
-                    bookList.add(BookInfo(doc.id,book))
+        if (listenerRegistration == null) {
+            listenerRegistration = db.collection("books")
+                .orderBy("furigana")
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Timber.w("Error getting books.: $e")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        bookList.clear()
+                        for (doc in snapshot) {
+                            val item = doc.data
+                            val book = setSnapshotToBook(item)
+                            bookList.add(BookInfo(doc.id, book))
+                        }
+                    }
                 }
-                return@addOnSuccessListener
-            }
+        }
         return bookList
     }
 
@@ -60,11 +64,10 @@ class BookDao(private val db: FirebaseFirestore) {
         return book
     }
 
-    fun deleteBook(key:String):MutableList<BookInfo>{
+    fun deleteBook(key:String) {
         db.collection("books")
             .document(key)
             .update("deleteFlag", true)
-        return readAllBooks()
     }
 
     fun searchIsbnBook(isbn:String):MutableState<BookInfo?>{

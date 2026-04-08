@@ -1,44 +1,45 @@
 package com.isoffice.bookshelfsharing.ui.viewModel
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.BookInfo
 
 data class BooksListState(
-    val bookList: MutableList<BookInfo> = mutableStateListOf(),
-    val tagSet: MutableSet<String> = mutableSetOf()
+    val bookList: List<BookInfo> = emptyList(),
+    val tagSet: Set<String> = emptySet()
 )
 
-class BooksViewModel (private val bookDao: BookDao):ViewModel() {
+class BooksViewModel(private val bookDao: BookDao) : ViewModel() {
 
-    var booksState = BooksListState()
+    var booksState by mutableStateOf(BooksListState())
         private set
 
-
-    fun getAllBooksList(){
+    fun getAllBooksList() {
         val list = bookDao.readAllBooks()
         val tagSet = getAllTags(list)
-        booksState = BooksListState(list, tagSet)
+        booksState = BooksListState(
+            bookList = list.toList(),
+            tagSet = tagSet.toSet()
+        )
     }
 
-
-    fun deleteBook(key:String){    //keyで論理削除
-        val list = bookDao.deleteBook(key)
-        val tagSet = getAllTags(list)
-        booksState = BooksListState(list,tagSet)
+    fun deleteBook(key: String) {
+        bookDao.deleteBook(key)
+        // BookDao内のSnapshotListenerがリストを更新するため、
+        // getAllBooksList()を呼んでStateを最新の状態（タグの再計算など）に更新します。
+        getAllBooksList()
     }
 
-    private fun getAllTags(list:MutableList<BookInfo>): MutableSet<String> {
+    private fun getAllTags(list: MutableList<BookInfo>): Set<String> {
         val tagSet = mutableSetOf<String>()
-
-        list.forEach{ bookInfo ->
-            val book = bookInfo.book
-            book.tags?.let { it1 -> tagSet.addAll(it1.filterNot { it.isBlank() }) }
+        list.forEach { bookInfo ->
+            bookInfo.book.tags?.let { tags ->
+                tagSet.addAll(tags.filterNot { it.isBlank() })
+            }
         }
         return tagSet
     }
-
-
 }
