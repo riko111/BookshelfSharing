@@ -111,7 +111,6 @@ fun BookContentScreen(
                         combinedBook = mergeBookData(resOpenBD, resGoogle, user, barcode)
                     }
                 }
-                delay(1000) // 1秒待機
                 isSearching = false
             }
 
