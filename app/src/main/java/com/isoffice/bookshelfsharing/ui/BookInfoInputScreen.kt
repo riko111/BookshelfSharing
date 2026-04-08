@@ -198,7 +198,7 @@ fun BookInfoInputScreen(
             ownerIcon = user.photoUrl.toString()
         )
 
-        RegisteredAlert(book, { bookViewModel.addBook(it) }, {navController.navigate("main")})
+        InputBookDialog(book, { bookViewModel.addBook(it) }, {navController.navigate("main")})
     }
 }
 
@@ -206,7 +206,7 @@ fun BookInfoInputScreen(
 
 
 @Composable
-private fun RegisteredAlert(book: Book, onRegisterBook:(book:Book) ->Unit, onNavigateToMain:()->Unit){
+private fun InputBookDialog(book: Book, onRegisterBook:(book:Book) ->Unit, onNavigateToMain:()->Unit){
     val openDialog = remember{ mutableStateOf(true) }
     if(openDialog.value){
         AlertDialog(

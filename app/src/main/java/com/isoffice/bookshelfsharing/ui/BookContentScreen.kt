@@ -111,6 +111,7 @@ fun BookContentScreen(
                         combinedBook = mergeBookData(resOpenBD, resGoogle, user, barcode)
                     }
                 }
+                delay(1000) // 1秒待機
                 isSearching = false
             }
 
@@ -136,7 +137,7 @@ fun BookContentScreen(
                     Text(text = "本棚登録")
                 }
                 if (showDialog) {
-                    RegisteredAlert(
+                    RegisterBookDialog(
                         combinedBook!!,
                         onRegisterBook = { book ->
                             coroutineScope.launch {
@@ -249,7 +250,7 @@ private fun BookContent(
 }
 
 @Composable
-private fun RegisteredAlert(
+private fun RegisterBookDialog(
     book: Book,
     onRegisterBook: (book: Book) -> Unit,
     onDismiss: () -> Unit

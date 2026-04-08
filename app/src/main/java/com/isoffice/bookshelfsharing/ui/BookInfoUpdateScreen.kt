@@ -29,8 +29,6 @@ import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
 import com.isoffice.bookshelfsharing.ui.viewModel.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 @Composable
 fun BookInfoUpdateScreen(
@@ -38,31 +36,53 @@ fun BookInfoUpdateScreen(
     key : String, bookDao: BookDao,
     bookViewModel: BookViewModel,
 ){
-    var info = remember { mutableStateOf<BookInfo?>(null) }
-    runBlocking {
-        val job = launch {
-            info = bookDao.readBook(key)
+    var info by remember { mutableStateOf<BookInfo?>(null) }
+
+    LaunchedEffect(key) {
+        bookDao.readBook(key) {
+            info = it
         }
-        job.join()
     }
 
-    val book = info.value!!.book
+    val currentInfo = info
+    if (currentInfo == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        BookInfoUpdateContent(
+            navController = navController,
+            key = key,
+            currentInfo = currentInfo,
+            bookViewModel = bookViewModel
+        )
+    }
+}
+
+@Composable
+fun BookInfoUpdateContent(
+    navController: NavHostController,
+    key: String,
+    currentInfo: BookInfo,
+    bookViewModel: BookViewModel
+) {
+    val book = currentInfo.book
     val ownerId = book.ownerId
     val ownerIcon = book.ownerIcon
 
-    val thumbnail = remember {mutableStateOf(book.thumbnail)}
-    var title by remember { mutableStateOf(if(book.title.isNullOrEmpty()){""}else{book.title})}
-    var furigana by remember { mutableStateOf(if(book.furigana.isNullOrEmpty()){""}else{book.furigana})}
-    var author by remember { mutableStateOf(if(book.author.isNullOrEmpty()){""}else{book.author})}
-    var subtitle by remember { mutableStateOf(if(book.subtitle.isNullOrEmpty()){""}else{book.subtitle}) }
-    var description by remember { mutableStateOf(if(book.description.isNullOrEmpty()){""}else{book.description})}
-    var publisher by remember { mutableStateOf(if(book.publisher.isNullOrEmpty()){""}else{book.publisher})}
-    var publishedDate by remember { mutableStateOf(if(book.publishedDate.isNullOrEmpty()){""}else{book.publishedDate})}
-    var isbn by remember { mutableStateOf(if(book.isbn.isNullOrEmpty()){""}else{book.isbn})}
+    val thumbnail = remember { mutableStateOf(book.thumbnail) }
+    var title by remember { mutableStateOf(book.title ?: "") }
+    var furigana by remember { mutableStateOf(book.furigana ?: "") }
+    var author by remember { mutableStateOf(book.author ?: "") }
+    var subtitle by remember { mutableStateOf(book.subtitle ?: "") }
+    var description by remember { mutableStateOf(book.description ?: "") }
+    var publisher by remember { mutableStateOf(book.publisher ?: "") }
+    var publishedDate by remember { mutableStateOf(book.publishedDate ?: "") }
+    var isbn by remember { mutableStateOf(book.isbn ?: "") }
     var showDialog by remember { mutableStateOf(false) }
     var uri: Uri? = null
 
-    val painter = if(thumbnail.value != null) {
+    val painter = if (thumbnail.value != null) {
         rememberAsyncImagePainter(thumbnail.value)
     } else {
         painterResource(id = R.drawable.ic_broken_image)
@@ -73,8 +93,8 @@ fun BookInfoUpdateScreen(
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = {result:  ActivityResult ->
-            if(result.resultCode == Activity.RESULT_OK){
+        onResult = { result: ActivityResult ->
+            if (result.resultCode == Activity.RESULT_OK) {
                 imageUri = result.data?.data ?: uri
             }
         }
@@ -88,12 +108,12 @@ fun BookInfoUpdateScreen(
         }
     )
 
-
-    if(imageUri != null){
-        AsyncImage(model = imageUri, contentDescription = "BookSharing",
-            modifier = Modifier.size(200.dp),)
+    if (imageUri != null) {
+        AsyncImage(
+            model = imageUri, contentDescription = "BookSharing",
+            modifier = Modifier.size(200.dp),
+        )
     }
-
 
     Column(
         modifier = Modifier
@@ -105,7 +125,7 @@ fun BookInfoUpdateScreen(
     ) {
         Box(
             contentAlignment = Alignment.BottomEnd,
-        ){
+        ) {
             Image(
                 painter = painter,
                 contentDescription = book.title,
@@ -115,7 +135,6 @@ fun BookInfoUpdateScreen(
             IconButton(onClick = {
                 val tmpUri = getImageUri(context = context)
                 uri = tmpUri
-    //            launcher.launch(createChooser(tmpUri))
                 cameraLauncher.launch(tmpUri)
                 thumbnail.value = uri.toString()
             }) {
@@ -123,70 +142,84 @@ fun BookInfoUpdateScreen(
             }
         }
 
-        title?.let { it1 ->
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth().safeDrawingPadding()
-                    .padding(3.dp),
-                label = {Text("タイトル*")},
-                value = it1,
-                onValueChange = {title = it},
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        }
-
-        furigana?.let { it1 ->
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth().safeDrawingPadding()
-                    .padding(3.dp),
-                label = {Text("フリガナ")},
-                value = it1, onValueChange = {furigana = it},
-                placeholder = { Text(text = "フリガナ") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-            )
-        }
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth().safeDrawingPadding()
+                .padding(3.dp),
+            label = { Text("タイトル*") },
+            value = title,
+            onValueChange = { title = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
 
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
-            label = {Text("サブタイトル")},
-            value = subtitle, onValueChange = {subtitle = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+            label = { Text("フリガナ") },
+            value = furigana, onValueChange = { furigana = it },
+            placeholder = { Text(text = "フリガナ") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
+
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
-            label = {Text("著者*")},
-            value = author, onValueChange = {author = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+            label = { Text("サブタイトル") },
+            value = subtitle,
+            onValueChange = { subtitle = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
-            label = {Text("情報")},
-            value = description, onValueChange = {description = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
-        OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth().safeDrawingPadding()
-                    .padding(3.dp),
-        label = {Text("出版社")},
-        value = publisher, onValueChange = {publisher = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
+            label = { Text("著者*") },
+            value = author,
+            onValueChange = { author = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
-            label = {Text("出版日")},
+            label = { Text("情報") },
+            value = description,
+            onValueChange = { description = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth().safeDrawingPadding()
+                .padding(3.dp),
+            label = { Text("出版社") },
+            value = publisher,
+            onValueChange = { publisher = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+        )
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth().safeDrawingPadding()
+                .padding(3.dp),
+            label = { Text("出版日") },
             value = publishedDate,
             placeholder = { Text(text = "yyyymmdd") },
-            onValueChange = {publishedDate = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            onValueChange = { publishedDate = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
         OutlinedTextField(
-            label = {Text("ISBN")},
+            label = { Text("ISBN") },
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp),
-            value = isbn, onValueChange = {isbn = it}, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            value = isbn,
+            onValueChange = { isbn = it },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
 
         OutlinedButton(
-            onClick = { showDialog = true  },
+            onClick = { showDialog = true },
             modifier = Modifier
                 .fillMaxWidth().safeDrawingPadding()
                 .padding(3.dp)
@@ -194,14 +227,8 @@ fun BookInfoUpdateScreen(
             Text(text = "更新", Modifier)
         }
     }
-    if(showDialog){
-        if(furigana.isEmpty()) furigana = ""
-        if(subtitle.isEmpty()) subtitle = ""
-        if(description.isEmpty()) description = ""
-        if(publisher.isEmpty()) publisher = ""
-        if(publishedDate.isEmpty()) publishedDate = ""
-        if(isbn.isEmpty()) isbn = ""
 
+    if (showDialog) {
         val updateBook = Book(
             title = title,
             furigana = furigana,
@@ -216,39 +243,43 @@ fun BookInfoUpdateScreen(
             thumbnail = thumbnail.value
         )
 
-        RegisteredAlert(updateBook, { bookViewModel.updateBook(key,it) }, {navController.navigate("main")})
+        UpdateBookDialog(
+            book = updateBook,
+            onUpdateBook = { bookViewModel.updateBook(key, it) },
+            onNavigateToMain = { navController.navigate("main") }
+        )
     }
 }
 
 @Composable
-private fun RegisteredAlert(book: Book, onUpdateBook:(book:Book) ->Unit, onNavigateToMain:()->Unit){
-    val openDialog = remember{ mutableStateOf(true) }
-    if(openDialog.value){
+fun UpdateBookDialog(
+    book: Book,
+    onUpdateBook: (Book) -> Unit,
+    onNavigateToMain: () -> Unit
+) {
+    var openDialog by remember { mutableStateOf(true) }
+    if (openDialog) {
         AlertDialog(
-            onDismissRequest = { openDialog.value = false },
+            onDismissRequest = { openDialog = false },
             title = {
                 Text(text = "「${book.title}」を更新しますか？")
             },
             confirmButton = {
                 TextButton(onClick = {
-                    openDialog.value = false
-                    updateBook(book, onUpdateBook,onNavigateToMain)
+                    openDialog = false
+                    onUpdateBook(book)
+                    onNavigateToMain()
                 }) {
                     Text("はい")
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    openDialog.value = false
+                    openDialog = false
                 }) {
                     Text("いいえ")
                 }
             }
         )
     }
-}
-
-private fun updateBook(book:Book, onUpdateBook: (book: Book) -> Unit,onNavigateToMain: () -> Unit){
-    onUpdateBook(book)
-    onNavigateToMain()
 }
