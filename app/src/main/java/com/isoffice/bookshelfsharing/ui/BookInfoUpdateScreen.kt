@@ -26,6 +26,7 @@ import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.dao.BookDao
 import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookInfo
+import com.isoffice.bookshelfsharing.ui.compose.BookInfoFormCompose
 import com.isoffice.bookshelfsharing.ui.viewModel.*
 
 @Composable
@@ -140,7 +141,7 @@ fun BookInfoUpdateContent(
             }
         }
 
-        BookInfoFormFields(
+        BookInfoFormCompose(
             title = title,
             onTitleChange = { title = it },
             furigana = furigana,

@@ -1,9 +1,14 @@
 package com.isoffice.bookshelfsharing.ui
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.CameraEnhance
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -17,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.isoffice.bookshelfsharing.R
 
 import coil.compose.rememberAsyncImagePainter
@@ -27,6 +33,7 @@ import com.isoffice.bookshelfsharing.model.Book
 import com.isoffice.bookshelfsharing.model.BookHttp
 import com.isoffice.bookshelfsharing.model.GoogleBooks
 import com.isoffice.bookshelfsharing.model.OpenBD
+import com.isoffice.bookshelfsharing.ui.compose.BookInfoFormCompose
 import com.isoffice.bookshelfsharing.ui.viewModel.BookState
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 import kotlinx.coroutines.*
@@ -48,8 +55,9 @@ fun BookContentScreen(
         state,
         {bookViewModel.getBookByIsbn(it)},
         {navController.navigate("inputBook/$it")},
-        {bookViewModel.addBook(it)},
-        {navController.navigate("main")},
+        { navController.navigate("barcode") },
+        bookViewModel,
+        navController,
         {navController.navigate("bookDetail/$it")}
     )
 }
@@ -61,12 +69,12 @@ fun BookContentScreen(
     state: BookState,
     onSearchIsbn: (isbn: String) -> Unit,
     onNavigateToInputBook: (isbn: String) -> Unit,
-    onRegisterBook: (book: Book) -> Unit,
-    onNavigateToMain: () -> Unit,
+    onNavigateToBarcode: () -> Unit,
+    bookViewModel: BookViewModel,
+    navController: NavHostController,
     onNavigateToDetail: (str: String) -> Unit,
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(barcode) {
         onSearchIsbn(barcode)
@@ -80,7 +88,6 @@ fun BookContentScreen(
             .fillMaxSize().statusBarsPadding(),
     ) {
         if (bookInfo != null) {
-            // ... (Keep existing code for books already in the bookshelf)
             val book = bookInfo.book
             val painter = if(!book.thumbnail.isNullOrEmpty()) {
                 rememberAsyncImagePainter(book.thumbnail)
@@ -92,7 +99,6 @@ fun BookContentScreen(
                 Text(text = "本棚にあります")
             }
         } else {
-            // --- NEW LOGIC: Fetch both and merge ---
             var combinedBook by remember { mutableStateOf<Book?>(null) }
             var isSearching by remember { mutableStateOf(true) }
             val googleApiKey = context.getString(R.string.google_api_key)
@@ -108,7 +114,7 @@ fun BookContentScreen(
 
                     if (resOpenBD != null || (resGoogle != null && resGoogle.items != null)) {
                         // Merge the data
-                        combinedBook = mergeBookData(resOpenBD, resGoogle, user, barcode)
+                        combinedBook = mergeBookData(resOpenBD, resGoogle, user)
                     }
                 }
                 isSearching = false
@@ -129,25 +135,8 @@ fun BookContentScreen(
                     }
                 }
             } else {
-                // Display combined data
-                var showDialog by remember { mutableStateOf(false) }
-                BookContent(combinedBook!!)
-                OutlinedButton(onClick = { showDialog = true }) {
-                    Text(text = "本棚登録")
-                }
-                if (showDialog) {
-                    RegisterBookDialog(
-                        combinedBook!!,
-                        onRegisterBook = { book ->
-                            coroutineScope.launch {
-                                onRegisterBook(book)
-                                onNavigateToMain()
-                                Toast.makeText(context, "${book.title}を登録しました", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        onDismiss = { showDialog = false }
-                    )
-                }
+                // 書籍が見つかったときは登録画面
+                BookContent(combinedBook!!, user, bookViewModel, navController, onNavigateToBarcode)
             }
         }
     }
@@ -156,7 +145,6 @@ private fun mergeBookData(
     openBD: OpenBD?,
     googleBooks: GoogleBooks?,
     user: FirebaseUser,
-    isbn: String
 ): Book {
     // Start with base conversion from whichever is available
     val baseBook = if (openBD != null) {
@@ -170,36 +158,16 @@ private fun mergeBookData(
         val gBook = GoogleBooksMapper.GooglsBookToBook(googleBooks, user)
 
         return baseBook.copy(
-            // Use Google's thumbnail if openBD's is missing
             thumbnail = if (baseBook.thumbnail.isNullOrEmpty()) gBook.thumbnail else baseBook.thumbnail,
-            // Use Google's subtitle if openBD's is missing
             subtitle = if (baseBook.subtitle.isNullOrEmpty()) gBook.subtitle else baseBook.subtitle,
-            // Ensure description is captured (if your Book model has it)
-            // description = gBook.description ?: baseBook.description
+            description = if (baseBook.description.isNullOrEmpty()) gBook.description else baseBook.description,
+            publisher = if (baseBook.publisher.isNullOrEmpty()) gBook.publisher else baseBook.publisher,
         )
     }
 
     return baseBook
 }
-@Composable
-private fun BookContent(
-    book: Book
-) {
-    val painter = if(book.thumbnail != null && book.thumbnail != "") {
-        rememberAsyncImagePainter(book.thumbnail)
-    } else {
-        painterResource(id = R.drawable.ic_broken_image)
-    }
 
-    BookContent(
-        painter,
-        book.title,
-        book.subtitle,
-        book.author,
-        book.publisher,
-        book.publishedDate,
-    )
-}
 @Composable
 private fun BookContent(
     painter: Painter,
@@ -249,33 +217,168 @@ private fun BookContent(
 }
 
 @Composable
-private fun RegisterBookDialog(
+private fun BookContent(
     book: Book,
-    onRegisterBook: (book: Book) -> Unit,
-    onDismiss: () -> Unit
+    user: FirebaseUser,
+    bookViewModel: BookViewModel,
+    navController: NavHostController,
+    onNavigateToBarcode: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            val title = book.title
-            Text(text = "「${title}」を本棚に入れますか？")
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                onRegisterBook(book)
-                onDismiss()
-            }) {
-                Text("はい")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("いいえ")
+    val painter = if(book.thumbnail != null && book.thumbnail != "") {
+        rememberAsyncImagePainter(book.thumbnail)
+    } else {
+        painterResource(id = R.drawable.ic_broken_image)
+    }
+
+    val thumbnail = remember { mutableStateOf(book.thumbnail) }
+    var title by remember { mutableStateOf(book.title ?: "") }
+    var furigana by remember { mutableStateOf(book.furigana ?: "") }
+    var author by remember { mutableStateOf(book.author ?: "") }
+    var subtitle by remember { mutableStateOf(book.subtitle ?: "") }
+    var description by remember { mutableStateOf(book.description ?: "") }
+    var publisher by remember { mutableStateOf(book.publisher ?: "") }
+    var publishedDate by remember { mutableStateOf(book.publishedDate ?: "") }
+    var isbn by remember { mutableStateOf(book.isbn ?: "") }
+    var showDialog by remember { mutableStateOf(false) }
+    var uri: Uri? = null
+
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success) {
+                imageUri = uri
             }
         }
     )
+    if (imageUri != null) {
+        AsyncImage(
+            model = imageUri, contentDescription = "BookSharing",
+            modifier = Modifier.size(200.dp),
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(3.dp)
+            .fillMaxWidth().safeDrawingPadding(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            contentAlignment = Alignment.BottomEnd,
+        ){
+            Image(
+                painter = painter,
+                contentDescription = "",
+                modifier = Modifier.size(200.dp),
+                contentScale = ContentScale.Fit,
+            )
+            IconButton(onClick = {
+                val tmpUri = getImageUri(context = context)
+                uri = tmpUri
+                cameraLauncher.launch(tmpUri)
+                thumbnail.value = uri.toString()
+            }) {
+                Icon(Icons.Sharp.CameraEnhance, contentDescription = "")
+            }
+        }
+
+        BookInfoFormCompose(
+            title = title,
+            onTitleChange = { title = it },
+            furigana = furigana,
+            onFuriganaChange = { furigana = it },
+            subtitle = subtitle,
+            onSubtitleChange = { subtitle = it },
+            author = author,
+            onAuthorChange = { author = it },
+            description = description,
+            onDescriptionChange = { description = it },
+            publisher = publisher,
+            onPublisherChange = { publisher = it },
+            publishedDate = publishedDate,
+            onPublishedDateChange = { publishedDate = it },
+            isbn = isbn,
+            onIsbnChange = { isbn = it },
+            furiganaLabel = "ふりがな",
+            submitLabel = "本棚登録",
+            onSubmit = { showDialog = true }
+        )
+    }
+    if(showDialog){
+        if(furigana.isEmpty()) furigana = ""
+        if(subtitle.isEmpty()) subtitle = ""
+        if(description.isEmpty()) description = ""
+        if(publisher.isEmpty()) publisher = ""
+        if(publishedDate.isEmpty()) publishedDate = ""
+        if(isbn.isEmpty()) isbn = ""
+
+        val book = Book(
+            title = title,
+            furigana = furigana,
+            author = author,
+            subtitle = subtitle,
+            description = description,
+            publisher = publisher,
+            publishedDate = publishedDate,
+            isbn = isbn,
+            ownerId = user.email,
+            thumbnail = thumbnail.value,
+            ownerIcon = user.photoUrl.toString()
+        )
+
+        InputBookDialog(book, { bookViewModel.addBook(it) }, {navController.navigate("main")}, onNavigateToBarcode)
+    }
 }
 
 
-// Removed registerBook with runBlocking as it's replaced by coroutineScope.launch above
 
+@Composable
+private fun InputBookDialog(book: Book, onRegisterBook:(book:Book) ->Unit, onNavigateToMain:()->Unit,
+                            onNavigateToBarcode: () -> Unit,){
+    val openDialog = remember{ mutableStateOf(true) }
+    if(openDialog.value){
+        AlertDialog(
+            onDismissRequest = { openDialog.value = false },
+            title = {
+                Text(text = "「${book.title}」を本棚に入れますか？")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openDialog.value = false
+                    registerBook(book, onRegisterBook,onNavigateToMain)
+                }) {
+                    Text("はい")
+                }
+            },
+            dismissButton = {
+                Row{
+                    TextButton(onClick = {
+                        openDialog.value = false
+                    }) {
+                        Text("いいえ")
+                    }
+                    TextButton(onClick = {
+                        openDialog.value = false
+                        registerAndNextSearch(book, onRegisterBook,onNavigateToBarcode)
+                    }) {
+                        Text("はい（次の本）")
+                    }
+                }
+            }
+        )
+    }
+}
+
+private fun registerBook(book:Book, onRegisterBook: (book: Book) -> Unit,onNavigateToMain: () -> Unit){
+    onRegisterBook(book)
+    onNavigateToMain()
+}
+private fun registerAndNextSearch(book:Book, onRegisterBook: (book: Book) -> Unit,onNavigateToBarcode: () -> Unit){
+    onRegisterBook(book)
+    onNavigateToBarcode()
+}

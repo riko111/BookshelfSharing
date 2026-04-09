@@ -7,6 +7,8 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.sharp.CameraEnhance
@@ -23,6 +25,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.google.firebase.auth.FirebaseUser
 import com.isoffice.bookshelfsharing.R
 import com.isoffice.bookshelfsharing.model.Book
+import com.isoffice.bookshelfsharing.ui.compose.BookInfoFormCompose
 import com.isoffice.bookshelfsharing.ui.viewModel.BookViewModel
 
 @Composable
@@ -84,8 +87,11 @@ fun BookInfoInputScreen(
 
     Column(
         modifier = Modifier
+            .verticalScroll(rememberScrollState())
             .padding(3.dp)
             .fillMaxWidth().safeDrawingPadding(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             contentAlignment = Alignment.BottomEnd,
@@ -107,7 +113,7 @@ fun BookInfoInputScreen(
             }
         }
 
-        BookInfoFormFields(
+        BookInfoFormCompose(
             title = title,
             onTitleChange = { title = it },
             furigana = furigana,

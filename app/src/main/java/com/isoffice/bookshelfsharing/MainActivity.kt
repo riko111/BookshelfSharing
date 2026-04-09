@@ -1,6 +1,5 @@
 package com.isoffice.bookshelfsharing
 
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast

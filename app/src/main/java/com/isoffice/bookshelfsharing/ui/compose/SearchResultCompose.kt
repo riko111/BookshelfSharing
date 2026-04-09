@@ -1,4 +1,4 @@
-package com.isoffice.bookshelfsharing.ui
+package com.isoffice.bookshelfsharing.ui.compose
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.isoffice.bookshelfsharing.model.BookInfo
+import com.isoffice.bookshelfsharing.ui.MainContent
 
 
 @Composable

@@ -348,6 +348,7 @@ private fun EmptyBooksState() {
         contentAlignment = Alignment.Center
     ) {
         Text(text = "表示できる本がありません")
+        CircularProgressIndicator()
     }
 }
 

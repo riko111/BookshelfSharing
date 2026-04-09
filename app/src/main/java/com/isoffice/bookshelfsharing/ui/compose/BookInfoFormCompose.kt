@@ -1,7 +1,8 @@
-package com.isoffice.bookshelfsharing.ui
+package com.isoffice.bookshelfsharing.ui.compose
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.OutlinedTextField
@@ -12,7 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun BookInfoFormFields(
+fun BookInfoFormCompose(
     title: String,
     onTitleChange: (String) -> Unit,
     furigana: String,
